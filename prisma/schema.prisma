@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  category    Category  @default(TASKS)
+  priority    Priority  @default(MEDIUM)
+  dueDate     DateTime?
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("tasks")
+}
+
+model Habit {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  category    HabitCategory @default(FITNESS)
+  color       String        @default("#22c55e")
+  icon        String        @default("activity")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  logs        HabitLog[]
+
+  @@map("habits")
+}
+
+model HabitLog {
+  id       String   @id @default(cuid())
+  habitId  String
+  habit    Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  date     String
+  loggedAt DateTime @default(now())
+
+  @@unique([habitId, date])
+  @@map("habit_logs")
+}
+
+enum Category {
+  TASKS
+  TESTS
+  PRACTISE
+  REVISION
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum HabitCategory {
+  FITNESS
+  ART
+  HEALTH
+  LEARNING
+  MINDFULNESS
+}
