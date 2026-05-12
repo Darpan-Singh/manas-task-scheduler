@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { ArrowLeft, Plus, Trash2, Pencil, CheckCircle2, Circle } from "lucide-react";
-import { format, isPast } from "date-fns";
+import { format, isPast, isToday } from "date-fns";
 import TaskModal from "@/components/TaskModal";
 import { Task, Category, CATEGORY_CONFIG, PRIORITY_CONFIG } from "@/lib/types";
 
@@ -90,7 +90,7 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
       </header>
 
       {/* Task list */}
-      <main className="flex-1 px-4 py-4 space-y-2 pb-24">
+      <main className="flex-1 px-4 py-4 space-y-2 pb-28">
         {loading ? (
           <div className="text-center text-gray-400 py-16 text-sm">Loading...</div>
         ) : tasks.length === 0 ? (
@@ -200,16 +200,20 @@ function TaskCard({
           >
             {priorityCfg.label}
           </span>
-          {task.dueDate && (
-            <span
-              className={`text-xs font-semibold ${
-                isOverdue ? "text-red-500" : "text-gray-400"
-              }`}
-            >
-              {isOverdue ? "Overdue · " : ""}
-              {format(new Date(task.dueDate), "MMM d")}
-            </span>
-          )}
+          {task.dueDate && (() => {
+            const due = new Date(task.dueDate);
+            const hasTime = due.getHours() !== 0 || due.getMinutes() !== 0;
+            const dateStr = isToday(due)
+              ? "Today"
+              : format(due, "MMM d");
+            const timeStr = hasTime ? format(due, " 'at' h:mm a") : "";
+            return (
+              <span className={`text-xs font-semibold flex items-center gap-1 ${isOverdue ? "text-red-500" : "text-gray-400"}`}>
+                {isOverdue && <span className="text-red-500">Overdue ·</span>}
+                {dateStr}{timeStr}
+              </span>
+            );
+          })()}
         </div>
       </div>
       <div className="flex gap-1 flex-shrink-0">

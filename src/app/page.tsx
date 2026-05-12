@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Home, BarChart2, Flame, CheckCircle2, AlertTriangle } from "lucide-react";
+import { CheckCircle2, AlertTriangle } from "lucide-react";
 import TaskModal from "@/components/TaskModal";
+import BottomNav from "@/components/BottomNav";
 import { Task, Category, CATEGORY_CONFIG } from "@/lib/types";
 
 const QUADRANTS = [
@@ -140,7 +141,7 @@ export default function HomePage() {
   const hoveredCfg = hoveredQ ? QUADRANTS.find((q) => q.id === hoveredQ) : null;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] flex flex-col max-w-md mx-auto">
+    <div className="min-h-screen bg-[#0A0A0F] flex flex-col max-w-md mx-auto pb-16">
       {/* Header */}
       <header className="flex items-center justify-between px-5 pt-5 pb-3">
         <div>
@@ -325,21 +326,7 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* Bottom Nav */}
-      <nav className="flex items-center bg-[#13131A] border-t border-white/5">
-        <div className="flex-1 flex flex-col items-center gap-1 py-3">
-          <Home size={20} className="text-white" />
-          <span className="text-[11px] font-bold text-white">Home</span>
-        </div>
-        <Link href="/dashboard" className="flex-1 flex flex-col items-center gap-1 py-3">
-          <BarChart2 size={20} className="text-white/40" />
-          <span className="text-[11px] font-semibold text-white/40">Stats</span>
-        </Link>
-        <Link href="/habits" className="flex-1 flex flex-col items-center gap-1 py-3">
-          <Flame size={20} className="text-white/40" />
-          <span className="text-[11px] font-semibold text-white/40">Habits</span>
-        </Link>
-      </nav>
+      <BottomNav active="home" dark />
 
       <TaskModal
         open={modalOpen}

@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Plus, Home, BarChart2, Flame } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import HabitCard, { type HabitData } from "@/components/HabitCard";
 import HabitModal from "@/components/HabitModal";
+import BottomNav from "@/components/BottomNav";
 
 type ViewMode = "daily" | "weekly" | "monthly";
 type CategoryFilter = "ALL" | "FITNESS" | "ART" | "HEALTH" | "LEARNING" | "MINDFULNESS";
@@ -98,7 +99,7 @@ export default function HabitsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA] max-w-md mx-auto">
+    <div className="min-h-screen bg-[#F7F8FA] max-w-md mx-auto pb-16">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4 flex items-center gap-3">
         <Link href="/" className="text-gray-400 hover:text-gray-700 transition-colors">
@@ -186,21 +187,7 @@ export default function HabitsPage() {
         initial={editing}
       />
 
-      {/* Bottom Nav */}
-      <nav className="sticky bottom-0 flex items-center bg-white border-t border-gray-100 shadow-sm">
-        <Link href="/" className="flex-1 flex flex-col items-center gap-1 py-3">
-          <Home size={20} className="text-gray-400" />
-          <span className="text-[11px] font-semibold text-gray-400">Home</span>
-        </Link>
-        <Link href="/dashboard" className="flex-1 flex flex-col items-center gap-1 py-3">
-          <BarChart2 size={20} className="text-gray-400" />
-          <span className="text-[11px] font-semibold text-gray-400">Stats</span>
-        </Link>
-        <div className="flex-1 flex flex-col items-center gap-1 py-3">
-          <Flame size={20} className="text-purple-500" />
-          <span className="text-[11px] font-bold text-purple-500">Habits</span>
-        </div>
-      </nav>
+      <BottomNav active="habits" dark={false} />
     </div>
   );
 }
