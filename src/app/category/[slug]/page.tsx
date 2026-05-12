@@ -80,11 +80,12 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
         <Link href="/" className="text-white opacity-80 hover:opacity-100">
           <ArrowLeft size={22} />
         </Link>
-        <span className="flex-1 text-white font-bold tracking-widest text-sm">
-          {cfg.label}
-        </span>
-        <span className="text-white text-sm opacity-80">
-          {pending.length} to go
+        <div className="flex-1">
+          <p className="text-white font-black text-base leading-tight">{cfg.label}</p>
+          <p className="text-white/70 text-xs font-medium">{cfg.sub}</p>
+        </div>
+        <span className="text-white text-sm font-semibold opacity-80">
+          {pending.length} left
         </span>
       </header>
 
@@ -111,7 +112,7 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
             ))}
             {completed.length > 0 && (
               <>
-                <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest pt-4 pb-1 px-1">
+                <p className="text-sm text-gray-400 font-bold uppercase tracking-widest pt-4 pb-1 px-1">
                   Completed
                 </p>
                 {completed.map((task) => (
@@ -183,25 +184,25 @@ function TaskCard({
       </button>
       <div className="flex-1 min-w-0">
         <p
-          className={`text-sm font-medium text-gray-800 ${
+          className={`text-base font-semibold text-gray-800 leading-snug ${
             task.completed ? "line-through text-gray-400" : ""
           }`}
         >
           {task.title}
         </p>
         {task.description && (
-          <p className="text-xs text-gray-400 mt-0.5 truncate">{task.description}</p>
+          <p className="text-sm text-gray-400 mt-0.5 truncate">{task.description}</p>
         )}
-        <div className="flex items-center gap-2 mt-1.5">
+        <div className="flex items-center gap-2 mt-2">
           <span
-            className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+            className="text-xs font-bold px-2.5 py-0.5 rounded-full"
             style={{ backgroundColor: priorityCfg.color + "20", color: priorityCfg.color }}
           >
             {priorityCfg.label}
           </span>
           {task.dueDate && (
             <span
-              className={`text-[10px] font-medium ${
+              className={`text-xs font-semibold ${
                 isOverdue ? "text-red-500" : "text-gray-400"
               }`}
             >

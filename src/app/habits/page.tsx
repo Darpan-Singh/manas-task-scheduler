@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, Home, BarChart2, Flame } from "lucide-react";
 import HabitCard, { type HabitData } from "@/components/HabitCard";
 import HabitModal from "@/components/HabitModal";
 
@@ -105,9 +105,7 @@ export default function HabitsPage() {
           <ArrowLeft size={22} />
         </Link>
         <div className="flex-1">
-          <h1 className="text-lg font-bold text-gray-900">
-            Habit<span className="text-purple-500">Kit</span>
-          </h1>
+          <h1 className="text-2xl font-black text-gray-900">Habit Tracker</h1>
         </div>
         <button
           onClick={() => { setEditing(null); setModalOpen(true); }}
@@ -187,6 +185,22 @@ export default function HabitsPage() {
         onSave={handleSave}
         initial={editing}
       />
+
+      {/* Bottom Nav */}
+      <nav className="sticky bottom-0 flex items-center bg-white border-t border-gray-100 shadow-sm">
+        <Link href="/" className="flex-1 flex flex-col items-center gap-1 py-3">
+          <Home size={20} className="text-gray-400" />
+          <span className="text-[11px] font-semibold text-gray-400">Home</span>
+        </Link>
+        <Link href="/dashboard" className="flex-1 flex flex-col items-center gap-1 py-3">
+          <BarChart2 size={20} className="text-gray-400" />
+          <span className="text-[11px] font-semibold text-gray-400">Stats</span>
+        </Link>
+        <div className="flex-1 flex flex-col items-center gap-1 py-3">
+          <Flame size={20} className="text-purple-500" />
+          <span className="text-[11px] font-bold text-purple-500">Habits</span>
+        </div>
+      </nav>
     </div>
   );
 }

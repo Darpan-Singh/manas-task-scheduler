@@ -2,171 +2,65 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
-import { LayoutDashboard, Flame, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Home, BarChart2, Flame, CheckCircle2, AlertTriangle } from "lucide-react";
 import TaskModal from "@/components/TaskModal";
 import { Task, Category, CATEGORY_CONFIG } from "@/lib/types";
 
-// Eisenhower quadrant config mapped to our categories
 const QUADRANTS = [
   {
     id: "TASKS" as Category,
     label: "DO",
     sub: "Urgent · Important",
     color: "#E05454",
-    bg: "from-[#E05454] to-[#C83C3C]",
-    glow: "#E0545440",
-    position: "top-left",
+    darkColor: "#C03030",
+    bg: "from-[#E05454] to-[#C03030]",
   },
   {
     id: "TESTS" as Category,
     label: "DECIDE",
     sub: "Not Urgent · Important",
     color: "#2AACBF",
+    darkColor: "#1A8C9F",
     bg: "from-[#2AACBF] to-[#1A8C9F]",
-    glow: "#2AACBF40",
-    position: "top-right",
   },
   {
     id: "PRACTISE" as Category,
     label: "DELEGATE",
     sub: "Urgent · Not Important",
     color: "#F0A500",
-    bg: "from-[#F0A500] to-[#D08800]",
-    glow: "#F0A50040",
-    position: "bottom-left",
+    darkColor: "#C88000",
+    bg: "from-[#F0A500] to-[#C88000]",
   },
   {
     id: "REVISION" as Category,
     label: "DELETE",
     sub: "Not Urgent · Not Important",
     color: "#2BAE8E",
+    darkColor: "#1A8E6E",
     bg: "from-[#2BAE8E] to-[#1A8E6E]",
-    glow: "#2BAE8E40",
-    position: "bottom-right",
   },
 ];
 
 export default function HomePage() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [targetCategory, setTargetCategory] = useState<Category>("TASKS");
-  const [hoveredQuadrant, setHoveredQuadrant] = useState<Category | null>(null);
+
+  // Drag state — stored in refs so pointer move doesn't cause re-renders
   const [isDragging, setIsDragging] = useState(false);
-  const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
-  const [fabOrigin, setFabOrigin] = useState({ x: 0, y: 0 });
+  const [hoveredQ, setHoveredQ] = useState<Category | null>(null);
+  const [fabOffset, setFabOffset] = useState({ x: 0, y: 0 });
+
   const fabRef = useRef<HTMLButtonElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const dragActive = useRef(false);
-  const startPos = useRef({ x: 0, y: 0 });
+  const gridRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+  const fabStart = useRef({ x: 0, y: 0 });
 
   const fetchTasks = async () => {
     const res = await fetch("/api/tasks");
-    const data = await res.json();
-    setTasks(data);
-    setLoading(false);
+    setTasks(await res.json());
   };
-
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  // Detect which quadrant a point is in
-  const getQuadrantAtPoint = useCallback((clientX: number, clientY: number): Category | null => {
-    const container = containerRef.current;
-    if (!container) return null;
-    const rect = container.getBoundingClientRect();
-    const relX = clientX - rect.left;
-    const relY = clientY - rect.top;
-    const midX = rect.width / 2;
-    const midY = rect.height / 2;
-    if (relX < midX && relY < midY) return "TASKS";
-    if (relX >= midX && relY < midY) return "TESTS";
-    if (relX < midX && relY >= midY) return "PRACTISE";
-    return "REVISION";
-  }, []);
-
-  // Touch drag handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    dragActive.current = true;
-    setIsDragging(true);
-    startPos.current = { x: touch.clientX, y: touch.clientY };
-    setDragPos({ x: 0, y: 0 });
-    if (fabRef.current) {
-      const r = fabRef.current.getBoundingClientRect();
-      setFabOrigin({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!dragActive.current) return;
-    e.preventDefault();
-    const touch = e.touches[0];
-    setDragPos({
-      x: touch.clientX - startPos.current.x,
-      y: touch.clientY - startPos.current.y,
-    });
-    const q = getQuadrantAtPoint(touch.clientX, touch.clientY);
-    setHoveredQuadrant(q);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!dragActive.current) return;
-    dragActive.current = false;
-    setIsDragging(false);
-    setDragPos({ x: 0, y: 0 });
-
-    const touch = e.changedTouches[0];
-    const q = getQuadrantAtPoint(touch.clientX, touch.clientY);
-    if (q) {
-      setTargetCategory(q);
-      setModalOpen(true);
-    }
-    setHoveredQuadrant(null);
-  };
-
-  // Mouse drag handlers
-  const handleMouseDown = (e: React.MouseEvent) => {
-    dragActive.current = true;
-    setIsDragging(true);
-    startPos.current = { x: e.clientX, y: e.clientY };
-    setDragPos({ x: 0, y: 0 });
-    if (fabRef.current) {
-      const r = fabRef.current.getBoundingClientRect();
-      setFabOrigin({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
-    }
-  };
-
-  useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
-      if (!dragActive.current) return;
-      setDragPos({
-        x: e.clientX - startPos.current.x,
-        y: e.clientY - startPos.current.y,
-      });
-      const q = getQuadrantAtPoint(e.clientX, e.clientY);
-      setHoveredQuadrant(q);
-    };
-    const onMouseUp = (e: MouseEvent) => {
-      if (!dragActive.current) return;
-      dragActive.current = false;
-      setIsDragging(false);
-      setDragPos({ x: 0, y: 0 });
-      const q = getQuadrantAtPoint(e.clientX, e.clientY);
-      if (q && Math.abs(e.clientX - startPos.current.x) + Math.abs(e.clientY - startPos.current.y) > 10) {
-        setTargetCategory(q);
-        setModalOpen(true);
-      }
-      setHoveredQuadrant(null);
-    };
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-    };
-  }, [getQuadrantAtPoint]);
+  useEffect(() => { fetchTasks(); }, []);
 
   const handleAddTask = async (data: Partial<Task>) => {
     await fetch("/api/tasks", {
@@ -177,8 +71,63 @@ export default function HomePage() {
     fetchTasks();
   };
 
-  const now = new Date();
+  // Given a pointer position, figure out which quadrant it's over
+  const getQuadrant = useCallback((clientX: number, clientY: number): Category | null => {
+    const grid = gridRef.current;
+    if (!grid) return null;
+    const r = grid.getBoundingClientRect();
+    const rx = clientX - r.left;
+    const ry = clientY - r.top;
+    if (rx < 0 || ry < 0 || rx > r.width || ry > r.height) return null;
+    const midX = r.width / 2;
+    const midY = r.height / 2;
+    if (rx < midX && ry < midY) return "TASKS";
+    if (rx >= midX && ry < midY) return "TESTS";
+    if (rx < midX && ry >= midY) return "PRACTISE";
+    return "REVISION";
+  }, []);
 
+  // Pointer events — single handler for mouse + touch
+  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    fabRef.current?.setPointerCapture(e.pointerId);
+    dragging.current = true;
+    fabStart.current = { x: e.clientX, y: e.clientY };
+    setIsDragging(true);
+    setFabOffset({ x: 0, y: 0 });
+  };
+
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!dragging.current) return;
+    const dx = e.clientX - fabStart.current.x;
+    const dy = e.clientY - fabStart.current.y;
+    setFabOffset({ x: dx, y: dy });
+    setHoveredQ(getQuadrant(e.clientX, e.clientY));
+  }, [getQuadrant]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!dragging.current) return;
+    dragging.current = false;
+
+    const dx = e.clientX - fabStart.current.x;
+    const dy = e.clientY - fabStart.current.y;
+    const moved = Math.abs(dx) + Math.abs(dy) > 12;
+    const q = getQuadrant(e.clientX, e.clientY);
+
+    // Animate back first, then open modal
+    setFabOffset({ x: 0, y: 0 });
+    setHoveredQ(null);
+    setIsDragging(false);
+
+    if (moved && q) {
+      setTimeout(() => {
+        setTargetCategory(q);
+        setModalOpen(true);
+      }, 180);
+    }
+  }, [getQuadrant]);
+
+  const now = new Date();
   const getStats = (category: Category) => {
     const cat = tasks.filter((t) => t.category === category);
     return {
@@ -188,111 +137,103 @@ export default function HomePage() {
     };
   };
 
+  const hoveredCfg = hoveredQ ? QUADRANTS.find((q) => q.id === hoveredQ) : null;
+
   return (
-    <div className="min-h-screen bg-[#0A0A0F] flex flex-col max-w-md mx-auto relative overflow-hidden select-none">
+    <div className="min-h-screen bg-[#0A0A0F] flex flex-col max-w-md mx-auto">
       {/* Header */}
-      <header className="flex items-center justify-between px-5 py-4 z-10 relative">
-        <Link href="/dashboard">
-          <LayoutDashboard size={20} className="text-white/50 hover:text-white/80 transition-colors" />
-        </Link>
-        <div className="text-center">
-          <p className="text-[10px] text-white/40 uppercase tracking-widest">Eisenhower Matrix</p>
-          <p className="text-white font-semibold text-sm">My Tasks</p>
+      <header className="flex items-center justify-between px-5 pt-5 pb-3">
+        <div>
+          <p className="text-white/40 text-xs uppercase tracking-widest font-medium">Eisenhower Matrix</p>
+          <p className="text-white font-bold text-xl">My Tasks</p>
         </div>
-        <Link href="/habits">
-          <Flame size={20} className="text-purple-400/70 hover:text-purple-400 transition-colors" />
-        </Link>
+        <button
+          onClick={() => { setTargetCategory("TASKS"); setModalOpen(true); }}
+          className="px-4 py-2 rounded-full bg-white/10 border border-white/10 text-white text-sm font-semibold active:scale-95 transition-transform"
+        >
+          + Add Task
+        </button>
       </header>
 
-      {/* Quadrant grid */}
-      <div
-        ref={containerRef}
-        className="flex-1 grid grid-cols-2 relative"
-        style={{ minHeight: "calc(100vh - 120px)" }}
+      {/* Grid */}
+      <main
+        ref={gridRef}
+        className="flex-1 grid grid-cols-2 gap-2 px-2 relative"
+        style={{ userSelect: "none" }}
       >
         {QUADRANTS.map((q) => {
           const stats = getStats(q.id);
-          const cfg = CATEGORY_CONFIG[q.id];
-          const isHovered = hoveredQuadrant === q.id;
+          const isHovered = hoveredQ === q.id;
+          const isDimmed = isDragging && hoveredQ !== null && !isHovered;
 
           return (
             <Link
               key={q.id}
               href={`/category/${q.id.toLowerCase()}`}
-              className={`relative flex flex-col justify-between p-5 bg-gradient-to-br ${q.bg} overflow-hidden transition-all duration-200`}
-              style={{
-                boxShadow: isHovered ? `inset 0 0 60px rgba(255,255,255,0.15)` : "none",
-                transform: isHovered ? "scale(1.02)" : "scale(1)",
-              }}
               onClick={(e) => isDragging && e.preventDefault()}
+              className={`relative flex flex-col justify-between p-5 rounded-3xl bg-gradient-to-br ${q.bg} overflow-hidden`}
+              style={{
+                transition: "transform 0.2s cubic-bezier(0.34,1.56,0.64,1), opacity 0.2s, box-shadow 0.2s",
+                transform: isHovered ? "scale(1.04)" : isDimmed ? "scale(0.97)" : "scale(1)",
+                opacity: isDimmed ? 0.55 : 1,
+                boxShadow: isHovered ? `0 0 40px ${q.color}80, 0 8px 32px rgba(0,0,0,0.4)` : "0 4px 20px rgba(0,0,0,0.3)",
+              }}
             >
-              {/* Subtle background pattern */}
+              {/* Dot pattern */}
               <div
-                className="absolute inset-0 opacity-5"
+                className="absolute inset-0"
                 style={{
-                  backgroundImage: `radial-gradient(circle at 20% 80%, white 1px, transparent 1px)`,
-                  backgroundSize: "20px 20px",
+                  backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px)`,
+                  backgroundSize: "18px 18px",
+                  opacity: isHovered ? 0.8 : 0.4,
+                  transition: "opacity 0.2s",
                 }}
               />
 
-              {/* Drop hint when dragging */}
-              {isDragging && (
-                <div
-                  className="absolute inset-0 border-4 rounded-none transition-all duration-150 pointer-events-none"
-                  style={{
-                    borderColor: isHovered ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.1)",
-                    backgroundColor: isHovered ? "rgba(255,255,255,0.1)" : "transparent",
-                  }}
-                />
-              )}
-              {isDragging && isHovered && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="bg-white/20 backdrop-blur-sm rounded-2xl px-4 py-2">
-                    <p className="text-white text-xs font-bold">Drop to add here</p>
+              {/* Drop target overlay */}
+              {isHovered && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/10 rounded-3xl backdrop-blur-[2px]">
+                  <div
+                    className="rounded-2xl px-5 py-3 text-center"
+                    style={{ backgroundColor: q.darkColor + "CC" }}
+                  >
+                    <p className="text-white text-2xl font-black">{q.label}</p>
+                    <p className="text-white/80 text-xs font-semibold mt-1">Drop to add here</p>
                   </div>
                 </div>
               )}
 
-              {/* Top: quadrant label */}
-              <div>
-                <p className="text-white/60 text-[9px] font-bold tracking-widest uppercase">
-                  {q.label}
-                </p>
-                <p className="text-white/40 text-[8px] mt-0.5">{q.sub}</p>
+              {/* Label */}
+              <div className="relative" style={{ opacity: isHovered ? 0.3 : 1, transition: "opacity 0.2s" }}>
+                <p className="text-white font-black text-xl tracking-wide">{q.label}</p>
+                <p className="text-white/60 text-xs font-medium mt-0.5">{q.sub}</p>
               </div>
 
               {/* Stats */}
-              <div className="space-y-2">
+              <div className="relative mt-4 space-y-2" style={{ opacity: isHovered ? 0.3 : 1, transition: "opacity 0.2s" }}>
                 <div className="flex items-end gap-2">
-                  <span className="text-white text-4xl font-light leading-none">
-                    {stats.pending}
-                  </span>
-                  <span className="text-white/50 text-xs mb-1">pending</span>
+                  <span className="text-white text-5xl font-bold leading-none">{stats.pending}</span>
+                  <span className="text-white/60 text-sm font-semibold mb-1">left</span>
                 </div>
-
-                <div className="flex gap-3">
+                <div className="flex gap-3 flex-wrap">
                   {stats.completed > 0 && (
                     <div className="flex items-center gap-1">
-                      <CheckCircle2 size={10} className="text-white/60" />
-                      <span className="text-white/60 text-[10px]">{stats.completed} done</span>
+                      <CheckCircle2 size={12} className="text-white/70" />
+                      <span className="text-white/70 text-xs font-semibold">{stats.completed} done</span>
                     </div>
                   )}
                   {stats.overdue > 0 && (
                     <div className="flex items-center gap-1">
-                      <AlertTriangle size={10} className="text-yellow-300/80" />
-                      <span className="text-yellow-300/80 text-[10px]">{stats.overdue} late</span>
+                      <AlertTriangle size={12} className="text-yellow-300" />
+                      <span className="text-yellow-300 text-xs font-semibold">{stats.overdue} late</span>
                     </div>
                   )}
                 </div>
-
-                {/* Mini progress bar */}
                 {(stats.pending + stats.completed) > 0 && (
-                  <div className="h-0.5 bg-white/20 rounded-full overflow-hidden">
+                  <div className="h-1 bg-white/20 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-white/60 rounded-full"
-                      style={{
-                        width: `${Math.round((stats.completed / (stats.pending + stats.completed)) * 100)}%`,
-                      }}
+                      className="h-full bg-white/70 rounded-full"
+                      style={{ width: `${Math.round((stats.completed / (stats.pending + stats.completed)) * 100)}%` }}
                     />
                   </div>
                 )}
@@ -302,81 +243,103 @@ export default function HomePage() {
         })}
 
         {/* Center axis lines */}
-        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-          <div className="absolute top-0 bottom-0 left-1/2 w-px bg-black/30" />
-          <div className="absolute left-0 right-0 top-1/2 h-px bg-black/30" />
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 bottom-0 left-1/2 w-px bg-black/40" />
+          <div className="absolute left-0 right-0 top-1/2 h-px bg-black/40" />
         </div>
 
-        {/* Axis labels */}
-        <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-between px-2 pointer-events-none">
-          <span className="text-white/25 text-[8px] font-bold uppercase tracking-widest rotate-180 [writing-mode:vertical-lr]">
-            Urgent
-          </span>
-          <span className="text-white/25 text-[8px] font-bold uppercase tracking-widest [writing-mode:vertical-lr]">
-            Not Urgent
-          </span>
-        </div>
-        <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 flex flex-col justify-between py-2 pointer-events-none">
-          <span className="text-white/25 text-[8px] font-bold uppercase tracking-widest text-center">
-            Important
-          </span>
-          <span className="text-white/25 text-[8px] font-bold uppercase tracking-widest text-center">
-            Not Important
-          </span>
-        </div>
-
-        {/* FAB — draggable */}
+        {/* FAB — always at center, draggable */}
         <button
           ref={fabRef}
-          className="absolute z-20 flex flex-col items-center justify-center rounded-full shadow-2xl cursor-grab active:cursor-grabbing"
-          style={{
-            width: 64,
-            height: 64,
-            left: "50%",
-            top: "50%",
-            transform: isDragging
-              ? `translate(calc(-50% + ${dragPos.x}px), calc(-50% + ${dragPos.y}px)) scale(1.15)`
-              : "translate(-50%, -50%) scale(1)",
-            backgroundColor: isDragging
-              ? hoveredQuadrant
-                ? CATEGORY_CONFIG[hoveredQuadrant].color
-                : "white"
-              : "white",
-            transition: isDragging ? "background-color 0.15s, box-shadow 0.15s" : "transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background-color 0.15s",
-            boxShadow: isDragging
-              ? `0 0 40px ${hoveredQuadrant ? CATEGORY_CONFIG[hoveredQuadrant].color + "80" : "rgba(255,255,255,0.3)"}`
-              : "0 4px 24px rgba(0,0,0,0.5)",
-          }}
-          onMouseDown={handleMouseDown}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
           onClick={() => {
             if (!isDragging) {
               setTargetCategory("TASKS");
               setModalOpen(true);
             }
           }}
-          aria-label="Add task — drag to quadrant or tap"
+          className="absolute z-30 flex flex-col items-center justify-center rounded-full"
+          style={{
+            width: 72,
+            height: 72,
+            left: "50%",
+            top: "50%",
+            willChange: "transform",
+            transform: isDragging
+              ? `translate(calc(-50% + ${fabOffset.x}px), calc(-50% + ${fabOffset.y}px)) scale(${hoveredQ ? 1.2 : 1.05})`
+              : "translate(-50%, -50%) scale(1)",
+            transition: isDragging
+              ? "background-color 0.15s, box-shadow 0.15s, transform 0.05s linear"
+              : "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s, box-shadow 0.2s",
+            backgroundColor: hoveredCfg ? hoveredCfg.color : "white",
+            boxShadow: isDragging
+              ? hoveredCfg
+                ? `0 0 0 6px ${hoveredCfg.color}40, 0 0 60px ${hoveredCfg.color}80, 0 8px 32px rgba(0,0,0,0.6)`
+                : "0 0 0 4px rgba(255,255,255,0.2), 0 12px 40px rgba(0,0,0,0.6)"
+              : "0 0 0 3px rgba(255,255,255,0.15), 0 6px 24px rgba(0,0,0,0.5)",
+            cursor: isDragging ? "grabbing" : "grab",
+            touchAction: "none",
+          }}
+          aria-label="Drag to quadrant to add a task"
         >
           <span
-            className="text-2xl font-light leading-none transition-colors duration-150"
-            style={{ color: isDragging && hoveredQuadrant ? "white" : "#1a1a1a" }}
+            className="font-light leading-none transition-all duration-150"
+            style={{
+              fontSize: isDragging ? "2rem" : "1.75rem",
+              color: hoveredCfg ? "white" : "#1a1a1a",
+            }}
           >
             +
           </span>
           {!isDragging && (
-            <span className="text-[7px] text-gray-400 mt-0.5 leading-none">drag</span>
+            <span
+              className="text-[9px] font-bold uppercase tracking-wider mt-0.5 leading-none"
+              style={{ color: "#6b7280" }}
+            >
+              drag
+            </span>
+          )}
+          {isDragging && hoveredCfg && (
+            <span
+              className="text-[9px] font-black uppercase tracking-wider leading-none text-white"
+              style={{ marginTop: 2 }}
+            >
+              {hoveredCfg.label}
+            </span>
           )}
         </button>
-      </div>
+      </main>
 
-      {/* Bottom hint */}
-      <div className="flex items-center justify-center py-3">
-        <p className="text-white/20 text-[9px] tracking-widest uppercase">
-          Drag + to quadrant · Tap to add
+      {/* Drag hint */}
+      <div className="flex items-center justify-center py-2">
+        <p
+          className="text-xs font-semibold tracking-widest uppercase transition-all duration-300"
+          style={{ color: isDragging && hoveredCfg ? hoveredCfg.color : "rgba(255,255,255,0.2)" }}
+        >
+          {isDragging && hoveredCfg
+            ? `Adding to ${hoveredCfg.label}`
+            : "Drag + to quadrant · Tap to quick-add"}
         </p>
       </div>
+
+      {/* Bottom Nav */}
+      <nav className="flex items-center bg-[#13131A] border-t border-white/5">
+        <div className="flex-1 flex flex-col items-center gap-1 py-3">
+          <Home size={20} className="text-white" />
+          <span className="text-[11px] font-bold text-white">Home</span>
+        </div>
+        <Link href="/dashboard" className="flex-1 flex flex-col items-center gap-1 py-3">
+          <BarChart2 size={20} className="text-white/40" />
+          <span className="text-[11px] font-semibold text-white/40">Stats</span>
+        </Link>
+        <Link href="/habits" className="flex-1 flex flex-col items-center gap-1 py-3">
+          <Flame size={20} className="text-white/40" />
+          <span className="text-[11px] font-semibold text-white/40">Habits</span>
+        </Link>
+      </nav>
 
       <TaskModal
         open={modalOpen}

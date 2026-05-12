@@ -94,10 +94,13 @@ export default function TaskModal({ open, onClose, onSave, initial, defaultCateg
                   <SelectItem key={key} value={key}>
                     <span className="flex items-center gap-2">
                       <span
-                        className="w-2 h-2 rounded-full inline-block"
+                        className="w-2.5 h-2.5 rounded-full inline-block"
                         style={{ backgroundColor: cfg.color }}
                       />
-                      {cfg.label}
+                      <span>
+                        <span className="font-semibold">{cfg.label}</span>
+                        <span className="text-gray-400 text-xs"> · {cfg.sub}</span>
+                      </span>
                     </span>
                   </SelectItem>
                 ))}

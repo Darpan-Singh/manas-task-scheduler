@@ -16,10 +16,21 @@ export interface Task {
 
 export const CATEGORY_CONFIG: Record<
   Category,
-  { label: string; color: string; bg: string; ring: string; ringLight: string; text: string }
+  {
+    label: string;       // Eisenhower action label shown on home screen
+    name: string;        // Full descriptive name shown in lists / dashboard
+    sub: string;         // Urgency description
+    color: string;
+    bg: string;
+    ring: string;
+    ringLight: string;
+    text: string;
+  }
 > = {
   TASKS: {
-    label: "TASKS",
+    label: "Do",
+    name: "Do — Tasks",
+    sub: "Urgent & Important",
     color: "#E05454",
     bg: "bg-[#E05454]",
     ring: "#C03A3A",
@@ -27,7 +38,9 @@ export const CATEGORY_CONFIG: Record<
     text: "text-white",
   },
   TESTS: {
-    label: "TESTS",
+    label: "Decide",
+    name: "Decide — Tests",
+    sub: "Not Urgent & Important",
     color: "#2AACBF",
     bg: "bg-[#2AACBF]",
     ring: "#1E8A9E",
@@ -35,7 +48,9 @@ export const CATEGORY_CONFIG: Record<
     text: "text-white",
   },
   PRACTISE: {
-    label: "PRACTISE",
+    label: "Delegate",
+    name: "Delegate — Practise",
+    sub: "Urgent & Not Important",
     color: "#F0A500",
     bg: "bg-[#F0A500]",
     ring: "#C48500",
@@ -43,7 +58,9 @@ export const CATEGORY_CONFIG: Record<
     text: "text-white",
   },
   REVISION: {
-    label: "REVISION",
+    label: "Delete",
+    name: "Delete — Revision",
+    sub: "Not Urgent & Not Important",
     color: "#2BAE8E",
     bg: "bg-[#2BAE8E]",
     ring: "#1E8A6E",
@@ -53,7 +70,7 @@ export const CATEGORY_CONFIG: Record<
 };
 
 export const PRIORITY_CONFIG: Record<Priority, { label: string; color: string }> = {
-  HIGH: { label: "High", color: "#EF4444" },
+  HIGH:   { label: "High",   color: "#EF4444" },
   MEDIUM: { label: "Medium", color: "#F59E0B" },
-  LOW: { label: "Low", color: "#10B981" },
+  LOW:    { label: "Low",    color: "#10B981" },
 };

@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Target, Zap, AlertTriangle, TrendingUp } from "lucide-react";
+import { Home, BarChart2, Flame, Target, Zap, AlertTriangle, TrendingUp } from "lucide-react";
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
-import { CATEGORY_CONFIG } from "@/lib/types";
+import { CATEGORY_CONFIG, type Category } from "@/lib/types";
 import { format } from "date-fns";
 
 interface DashboardData {
@@ -35,14 +35,20 @@ interface DashboardData {
   }>;
 }
 
-const CAT_COLORS = {
-  TASKS: "#E05454",
-  TESTS: "#2AACBF",
-  PRACTISE: "#F0A500",
-  REVISION: "#2BAE8E",
-};
+// Maps the raw DB enum to the display label shown on the home screen
+function categoryLabel(cat: string): string {
+  return CATEGORY_CONFIG[cat as Category]?.label ?? cat;
+}
 
-const PRIORITY_COLORS = { HIGH: "#EF4444", MEDIUM: "#F59E0B", LOW: "#10B981" };
+function categoryColor(cat: string): string {
+  return CATEGORY_CONFIG[cat as Category]?.color ?? "#6B7280";
+}
+
+const PRIORITY_DISPLAY: Record<string, { label: string; color: string }> = {
+  HIGH:   { label: "High",   color: "#EF4444" },
+  MEDIUM: { label: "Medium", color: "#F59E0B" },
+  LOW:    { label: "Low",    color: "#10B981" },
+};
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -64,144 +70,134 @@ export default function DashboardPage() {
 
   const { summary, categoryStats, dailyData, priorityStats, recentActivity } = data;
 
-  const pieData = categoryStats
+  // Enrich category stats with readable labels for charts
+  const enrichedCategoryStats = categoryStats.map((c) => ({
+    ...c,
+    displayName: categoryLabel(c.category),
+    color: categoryColor(c.category),
+  }));
+
+  const pieData = enrichedCategoryStats
     .filter((c) => c.total > 0)
-    .map((c) => ({
-      name: c.category,
-      value: c.total,
-      color: CAT_COLORS[c.category as keyof typeof CAT_COLORS],
-    }));
+    .map((c) => ({ name: c.displayName, value: c.total, color: c.color }));
+
+  const streakDays = summary.streak;
+  const streakText = streakDays === 1 ? "1 day" : `${streakDays} days`;
 
   return (
     <div className="min-h-screen bg-[#0F1117] text-white max-w-md mx-auto pb-8">
       {/* Header */}
-      <header className="flex items-center gap-3 px-5 py-4 sticky top-0 bg-[#0F1117] z-10 border-b border-white/5">
-        <Link href="/" className="text-gray-400 hover:text-white transition-colors">
-          <ArrowLeft size={22} />
-        </Link>
-        <div>
-          <h1 className="text-base font-bold tracking-wide">Dashboard</h1>
-          <p className="text-[10px] text-gray-500">Productivity Analytics</p>
-        </div>
+      <header className="px-5 pt-5 pb-3 sticky top-0 bg-[#0F1117] z-10 border-b border-white/5">
+        <h1 className="text-xl font-black tracking-wide text-white">Stats</h1>
+        <p className="text-xs text-gray-500">Productivity Analytics</p>
       </header>
 
       <div className="px-4 pt-4 space-y-5">
+
         {/* KPI Cards */}
         <div className="grid grid-cols-2 gap-3">
           <KpiCard
             icon={<Target size={18} />}
             label="Completion Rate"
             value={`${summary.completionRate}%`}
-            sub={`${summary.completedTasks} / ${summary.totalTasks} tasks`}
+            sub={`${summary.completedTasks} of ${summary.totalTasks} done`}
             color="#2AACBF"
           />
           <KpiCard
             icon={<Zap size={18} />}
-            label="Day Streak"
-            value={`${summary.streak}d`}
-            sub="consecutive days"
+            label="Current Streak"
+            value={streakText}
+            sub="days completed in a row"
             color="#F0A500"
           />
           <KpiCard
             icon={<AlertTriangle size={18} />}
             label="Overdue"
             value={summary.overdueTasks.toString()}
-            sub="need attention"
+            sub="tasks past their due date"
             color="#E05454"
           />
           <KpiCard
             icon={<TrendingUp size={18} />}
             label="Total Tasks"
             value={summary.totalTasks.toString()}
-            sub={`${summary.totalTasks - summary.completedTasks} remaining`}
+            sub={`${summary.totalTasks - summary.completedTasks} still to do`}
             color="#2BAE8E"
           />
         </div>
 
-        {/* 14-day completion trend */}
-        <Section title="14-Day Activity" sub="completed vs created">
+        {/* 14-day activity trend */}
+        <Section title="14-Day Activity" sub="Tasks completed vs created each day">
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={dailyData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 9, fill: "#6B7280" }}
+                tick={{ fontSize: 10, fill: "#6B7280" }}
                 tickLine={false}
                 interval={2}
               />
-              <YAxis tick={{ fontSize: 9, fill: "#6B7280" }} tickLine={false} />
+              <YAxis
+                tick={{ fontSize: 10, fill: "#6B7280" }}
+                tickLine={false}
+                allowDecimals={false}
+              />
               <Tooltip
-                contentStyle={{ backgroundColor: "#1A1D27", border: "none", borderRadius: 12, fontSize: 11 }}
+                contentStyle={{ backgroundColor: "#1A1D27", border: "none", borderRadius: 12, fontSize: 12 }}
                 labelStyle={{ color: "#9CA3AF" }}
               />
-              <Line
-                type="monotone"
-                dataKey="completed"
-                stroke="#2AACBF"
-                strokeWidth={2}
-                dot={false}
-                name="Completed"
-              />
-              <Line
-                type="monotone"
-                dataKey="created"
-                stroke="#F0A500"
-                strokeWidth={2}
-                dot={false}
-                strokeDasharray="4 2"
-                name="Created"
-              />
-              <Legend
-                wrapperStyle={{ fontSize: 10, color: "#9CA3AF" }}
-              />
+              <Line type="monotone" dataKey="completed" stroke="#2AACBF" strokeWidth={2.5} dot={false} name="Completed" />
+              <Line type="monotone" dataKey="created" stroke="#F0A500" strokeWidth={2} dot={false} strokeDasharray="5 3" name="Created" />
+              <Legend wrapperStyle={{ fontSize: 11, color: "#9CA3AF" }} />
             </LineChart>
           </ResponsiveContainer>
         </Section>
 
-        {/* Category breakdown bar */}
-        <Section title="Category Breakdown" sub="pending vs completed">
-          <ResponsiveContainer width="100%" height={180}>
+        {/* Quadrant breakdown */}
+        <Section title="Quadrant Breakdown" sub="Completed vs still pending per quadrant">
+          <ResponsiveContainer width="100%" height={200}>
             <BarChart
-              data={categoryStats}
-              margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
-              barSize={16}
+              data={enrichedCategoryStats}
+              margin={{ top: 5, right: 5, left: -20, bottom: 20 }}
+              barSize={18}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" vertical={false} />
               <XAxis
-                dataKey="category"
-                tick={{ fontSize: 9, fill: "#6B7280" }}
+                dataKey="displayName"
+                tick={{ fontSize: 10, fill: "#9CA3AF" }}
                 tickLine={false}
-                tickFormatter={(v) => v.slice(0, 3)}
+                angle={-15}
+                textAnchor="end"
+                interval={0}
               />
-              <YAxis tick={{ fontSize: 9, fill: "#6B7280" }} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: "#6B7280" }} tickLine={false} allowDecimals={false} />
               <Tooltip
-                contentStyle={{ backgroundColor: "#1A1D27", border: "none", borderRadius: 12, fontSize: 11 }}
+                contentStyle={{ backgroundColor: "#1A1D27", border: "none", borderRadius: 12, fontSize: 12 }}
+                formatter={(value, name) => [value, name === "completed" ? "Completed" : "Pending"]}
+                labelFormatter={(label) => `Quadrant: ${label}`}
               />
               <Bar dataKey="completed" name="Completed" radius={[4, 4, 0, 0]}>
-                {categoryStats.map((entry) => (
-                  <Cell
-                    key={entry.category}
-                    fill={CAT_COLORS[entry.category as keyof typeof CAT_COLORS]}
-                  />
+                {enrichedCategoryStats.map((entry, i) => (
+                  <Cell key={i} fill={entry.color} />
                 ))}
               </Bar>
               <Bar dataKey="pending" name="Pending" fill="#2A2D3A" radius={[4, 4, 0, 0]} />
-              <Legend wrapperStyle={{ fontSize: 10, color: "#9CA3AF" }} />
+              <Legend wrapperStyle={{ fontSize: 11, color: "#9CA3AF" }} />
             </BarChart>
           </ResponsiveContainer>
         </Section>
 
-        {/* Distribution pie */}
-        <Section title="Task Distribution" sub="by category">
-          <div className="flex items-center gap-4">
-            <ResponsiveContainer width={140} height={140}>
+        {/* Distribution donut */}
+        <Section title="Task Distribution" sub="Total tasks per quadrant">
+          <div className="flex items-center gap-6">
+            <ResponsiveContainer width={130} height={130}>
               <PieChart>
                 <Pie
-                  data={pieData.length > 0 ? pieData : [{ name: "No data", value: 1, color: "#2A2D3A" }]}
+                  data={pieData.length > 0 ? pieData : [{ name: "No tasks yet", value: 1, color: "#2A2D3A" }]}
                   cx="50%"
                   cy="50%"
-                  innerRadius={42}
-                  outerRadius={65}
+                  innerRadius={38}
+                  outerRadius={62}
                   paddingAngle={3}
                   dataKey="value"
                 >
@@ -210,43 +206,42 @@ export default function DashboardPage() {
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#1A1D27", border: "none", borderRadius: 12, fontSize: 11 }}
+                  contentStyle={{ backgroundColor: "#1A1D27", border: "none", borderRadius: 12, fontSize: 12 }}
                 />
               </PieChart>
             </ResponsiveContainer>
-            <div className="flex-1 space-y-2">
-              {categoryStats.map((c) => (
+            <div className="flex-1 space-y-2.5">
+              {enrichedCategoryStats.map((c) => (
                 <div key={c.category} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: CAT_COLORS[c.category as keyof typeof CAT_COLORS] }}
-                    />
-                    <span className="text-[11px] text-gray-400">{c.category.slice(0, 3)}</span>
+                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
+                    <span className="text-sm font-medium text-gray-300">{c.displayName}</span>
                   </div>
-                  <span className="text-[11px] font-semibold text-white">{c.total}</span>
+                  <span className="text-sm font-bold text-white">{c.total}</span>
                 </div>
               ))}
             </div>
           </div>
         </Section>
 
-        {/* Priority overview */}
-        <Section title="Priority Overview" sub="task distribution by urgency">
-          <div className="space-y-3">
+        {/* Priority breakdown */}
+        <Section title="Priority Breakdown" sub="Completion rate by priority level">
+          <div className="space-y-4">
             {priorityStats.map((p) => {
               const pct = p.total > 0 ? Math.round((p.completed / p.total) * 100) : 0;
-              const color = PRIORITY_COLORS[p.priority as keyof typeof PRIORITY_COLORS];
+              const disp = PRIORITY_DISPLAY[p.priority] ?? { label: p.priority, color: "#6B7280" };
               return (
                 <div key={p.priority}>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-xs text-gray-400">{p.priority}</span>
-                    <span className="text-xs text-gray-400">{p.completed}/{p.total} · {pct}%</span>
+                  <div className="flex justify-between mb-1.5">
+                    <span className="text-sm font-semibold text-gray-200">{disp.label} Priority</span>
+                    <span className="text-sm text-gray-400">
+                      {p.completed} of {p.total} done ({pct}%)
+                    </span>
                   </div>
-                  <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-2.5 bg-white/5 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all"
-                      style={{ width: `${pct}%`, backgroundColor: color }}
+                      style={{ width: `${pct}%`, backgroundColor: disp.color }}
                     />
                   </div>
                 </div>
@@ -255,32 +250,31 @@ export default function DashboardPage() {
           </div>
         </Section>
 
-        {/* Recent activity timeline */}
-        <Section title="Recent Completions" sub="your latest wins">
+        {/* Recent completions timeline */}
+        <Section title="Recent Completions" sub="Your latest finished tasks">
           {recentActivity.length === 0 ? (
-            <p className="text-xs text-gray-500 py-4 text-center">
+            <p className="text-sm text-gray-500 py-4 text-center">
               Complete tasks to see your timeline here!
             </p>
           ) : (
-            <div className="relative pl-4">
-              <div className="absolute left-1.5 top-0 bottom-0 w-px bg-white/10" />
+            <div className="relative pl-5">
+              <div className="absolute left-2 top-0 bottom-0 w-px bg-white/10" />
               {recentActivity.map((item) => {
-                const color = CAT_COLORS[item.category as keyof typeof CAT_COLORS];
+                const color = categoryColor(item.category);
+                const label = categoryLabel(item.category);
                 return (
-                  <div key={item.id} className="relative flex items-start gap-3 pb-4">
+                  <div key={item.id} className="relative pb-4">
                     <div
-                      className="absolute -left-[3px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-[#0F1117]"
+                      className="absolute -left-[11px] top-1.5 w-3 h-3 rounded-full border-2 border-[#0F1117]"
                       style={{ backgroundColor: color }}
                     />
-                    <div className="pl-4">
-                      <p className="text-xs font-medium text-white leading-snug">{item.title}</p>
-                      <p className="text-[10px] text-gray-500 mt-0.5">
-                        {item.category} ·{" "}
-                        {item.completedAt
-                          ? format(new Date(item.completedAt), "MMM d, h:mm a")
-                          : ""}
-                      </p>
-                    </div>
+                    <p className="text-sm font-semibold text-white leading-snug">{item.title}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {label} ·{" "}
+                      {item.completedAt
+                        ? format(new Date(item.completedAt), "MMM d, h:mm a")
+                        : ""}
+                    </p>
                   </div>
                 );
               })}
@@ -296,15 +290,13 @@ export default function DashboardPage() {
             border: "1px solid #2AACBF30",
           }}
         >
-          <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
             Productivity Score
           </p>
-          <p className="text-5xl font-bold text-white mb-1">
+          <p className="text-6xl font-black text-white mb-1">
             {Math.min(100, Math.round(summary.completionRate * 0.6 + summary.streak * 4))}
           </p>
-          <p className="text-xs text-gray-400">
-            Based on completion rate + streak
-          </p>
+          <p className="text-sm text-gray-400">Based on completion rate and streak</p>
           <div className="mt-3 h-2 bg-white/5 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full"
@@ -316,51 +308,53 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Bottom Nav */}
+      <nav className="sticky bottom-0 flex items-center bg-[#0F1117] border-t border-white/5 mt-5">
+        <Link href="/" className="flex-1 flex flex-col items-center gap-1 py-3">
+          <Home size={20} className="text-white/40" />
+          <span className="text-[11px] font-semibold text-white/40">Home</span>
+        </Link>
+        <div className="flex-1 flex flex-col items-center gap-1 py-3">
+          <BarChart2 size={20} className="text-[#2AACBF]" />
+          <span className="text-[11px] font-bold text-[#2AACBF]">Stats</span>
+        </div>
+        <Link href="/habits" className="flex-1 flex flex-col items-center gap-1 py-3">
+          <Flame size={20} className="text-white/40" />
+          <span className="text-[11px] font-semibold text-white/40">Habits</span>
+        </Link>
+      </nav>
     </div>
   );
 }
 
 function KpiCard({
-  icon,
-  label,
-  value,
-  sub,
-  color,
+  icon, label, value, sub, color,
 }: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  sub: string;
-  color: string;
+  icon: React.ReactNode; label: string; value: string; sub: string; color: string;
 }) {
   return (
     <div className="bg-[#1A1D27] rounded-2xl p-4 border border-white/5">
       <div className="flex items-center gap-2 mb-2" style={{ color }}>
         {icon}
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-          {label}
-        </span>
+        <span className="text-xs font-bold uppercase tracking-wider text-gray-400">{label}</span>
       </div>
-      <p className="text-2xl font-bold text-white">{value}</p>
-      <p className="text-[10px] text-gray-500 mt-0.5">{sub}</p>
+      <p className="text-2xl font-bold text-white leading-tight">{value}</p>
+      <p className="text-xs text-gray-500 mt-1">{sub}</p>
     </div>
   );
 }
 
 function Section({
-  title,
-  sub,
-  children,
+  title, sub, children,
 }: {
-  title: string;
-  sub: string;
-  children: React.ReactNode;
+  title: string; sub: string; children: React.ReactNode;
 }) {
   return (
     <div className="bg-[#1A1D27] rounded-2xl p-4 border border-white/5">
       <div className="mb-3">
-        <h2 className="text-sm font-semibold text-white">{title}</h2>
-        <p className="text-[10px] text-gray-500">{sub}</p>
+        <h2 className="text-base font-bold text-white">{title}</h2>
+        <p className="text-xs text-gray-500 mt-0.5">{sub}</p>
       </div>
       {children}
     </div>
