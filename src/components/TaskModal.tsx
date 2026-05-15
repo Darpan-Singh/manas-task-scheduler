@@ -113,7 +113,7 @@ export default function TaskModal({ open, onClose, onSave, initial, defaultCateg
                       return cfg ? (
                         <span className="flex items-center gap-1.5">
                           <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.color }} />
-                          <span className="font-semibold">{cfg.name}</span>
+                          <span className="font-semibold">{cfg.label}</span>
                         </span>
                       ) : null;
                     }}
@@ -124,7 +124,7 @@ export default function TaskModal({ open, onClose, onSave, initial, defaultCateg
                     <SelectItem key={key} value={key}>
                       <span className="flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.color }} />
-                        <span className="font-semibold">{cfg.name}</span>
+                        <span className="font-semibold">{cfg.label}</span>
                       </span>
                     </SelectItem>
                   ))}

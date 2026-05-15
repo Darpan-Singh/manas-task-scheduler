@@ -38,7 +38,7 @@ export const CATEGORY_CONFIG: Record<
     text: "text-white",
   },
   TESTS: {
-    label: "DECIDE",
+    label: "Decide",
     name: "DECIDE — Tests",
     sub: "Not Urgent · Important",
     color: "#2AACBF",
@@ -48,7 +48,7 @@ export const CATEGORY_CONFIG: Record<
     text: "text-white",
   },
   PRACTISE: {
-    label: "DELEGATE",
+    label: "Delegate",
     name: "DELEGATE — Practise",
     sub: "Urgent · Not Important",
     color: "#F0A500",
@@ -58,7 +58,7 @@ export const CATEGORY_CONFIG: Record<
     text: "text-white",
   },
   REVISION: {
-    label: "DELETE",
+    label: "Delete",
     name: "DELETE — Revision",
     sub: "Not Urgent · Not Important",
     color: "#2BAE8E",
