@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import { ArrowRight, Sparkles, ArrowLeft, Smartphone } from "lucide-react";
-import type { ConfirmationResult, RecaptchaVerifier as RVType } from "firebase/auth";
 
 const GOOGLE_ICON = (
   <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
@@ -64,30 +63,17 @@ export default function LoginPage() {
   const router = useRouter();
   const { status } = useSession();
 
-  const [tab,  setTab]  = useState<Tab>("google");
-  const [phone, setPhone] = useState("");
-  const [otp,   setOtp]   = useState("");
-  const [step,  setStep]  = useState<Step>("phone");
+  const [tab,     setTab]     = useState<Tab>("google");
+  const [phone,   setPhone]   = useState("");
+  const [otp,     setOtp]     = useState("");
+  const [step,    setStep]    = useState<Step>("phone");
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
-
-  const recaptchaRef    = useRef<RVType | null>(null);
-  const confirmationRef = useRef<ConfirmationResult | null>(null);
-  const recaptchaDivRef = useRef<HTMLDivElement>(null);
-
-  const firebaseReady = !!(
-    process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
-    process.env.NEXT_PUBLIC_FIREBASE_API_KEY !== "REPLACE"
-  );
+  const [devOtp,  setDevOtp]  = useState("");   // shown in dev when SMS not configured
 
   useEffect(() => {
     if (status === "authenticated") router.replace("/profile");
   }, [status, router]);
-
-  // Clean up reCAPTCHA on unmount
-  useEffect(() => {
-    return () => { recaptchaRef.current?.clear?.(); };
-  }, []);
 
   async function handleGoogleSignIn() {
     setLoading(true);
@@ -96,43 +82,44 @@ export default function LoginPage() {
 
   async function handleSendOtp() {
     setError("");
+    setDevOtp("");
     setLoading(true);
     try {
-      const { firebaseAuth } = await import("@/lib/firebase");
-      const { RecaptchaVerifier, signInWithPhoneNumber } = await import("firebase/auth");
-
-      // Clear old verifier
-      recaptchaRef.current?.clear?.();
-      recaptchaRef.current = new RecaptchaVerifier(firebaseAuth, "recaptcha-container", { size: "invisible" });
-
-      const result = await signInWithPhoneNumber(firebaseAuth, `+91${phone}`, recaptchaRef.current);
-      confirmationRef.current = result;
+      const res  = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? "Failed to send OTP"); return; }
+      if (data.devOtp) setDevOtp(data.devOtp);  // dev fallback
       setStep("otp");
-    } catch (e: unknown) {
-      console.error(e);
-      const msg = e instanceof Error ? e.message : "Failed to send OTP";
-      setError(msg.includes("invalid-phone") ? "Invalid phone number" : msg.includes("too-many-requests") ? "Too many attempts. Try later." : "Failed to send OTP. Try again.");
+    } catch {
+      setError("Network error. Check your connection.");
     } finally {
       setLoading(false);
     }
   }
 
   async function handleVerifyOtp() {
-    if (!confirmationRef.current) return;
     setError("");
     setLoading(true);
     try {
-      const credential = await confirmationRef.current.confirm(otp);
-      const idToken = await credential.user.getIdToken();
-      const result  = await signIn("firebase-phone", { idToken, redirect: false });
-      if (result?.error) { setError("Verification failed. Try again."); return; }
+      const result = await signIn("phone-otp", { phone, otp, redirect: false });
+      if (result?.error) { setError("Invalid OTP. Please try again."); return; }
       router.replace("/profile");
-    } catch (e: unknown) {
-      console.error(e);
-      setError("Invalid OTP. Please try again.");
+    } catch {
+      setError("Verification failed. Try again.");
     } finally {
       setLoading(false);
     }
+  }
+
+  function resetPhone() {
+    setStep("phone");
+    setOtp("");
+    setError("");
+    setDevOtp("");
   }
 
   return (
@@ -145,9 +132,6 @@ export default function LoginPage() {
         style={{ background: "radial-gradient(circle, rgba(124,58,237,0.25), transparent 70%)" }} />
       <div className="absolute bottom-[-80px] right-[-40px] w-56 h-56 rounded-full pointer-events-none"
         style={{ background: "radial-gradient(circle, rgba(37,99,235,0.2), transparent 70%)" }} />
-
-      {/* Invisible reCAPTCHA mount point */}
-      <div id="recaptcha-container" ref={recaptchaDivRef} />
 
       {/* Back */}
       <button onClick={() => router.push("/")}
@@ -181,7 +165,7 @@ export default function LoginPage() {
           <div className="flex rounded-xl p-1 mb-5" style={{ background: "rgba(255,255,255,0.05)" }}>
             {(["google", "phone"] as Tab[]).map(t => (
               <button key={t}
-                onClick={() => { setTab(t); setStep("phone"); setError(""); setOtp(""); }}
+                onClick={() => { setTab(t); resetPhone(); }}
                 className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all"
                 style={{
                   background: tab === t ? "rgba(124,58,237,0.45)" : "transparent",
@@ -209,7 +193,7 @@ export default function LoginPage() {
           ) : step === "phone" ? (
             <>
               <p className="text-white text-base font-bold mb-0.5">Enter your number</p>
-              <p className="text-xs mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>We'll send a 6-digit code via SMS</p>
+              <p className="text-xs mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>We'll send a 6-digit OTP via SMS</p>
 
               <div className="flex items-center rounded-2xl mb-3 overflow-hidden"
                 style={{ background: "rgba(255,255,255,0.07)", border: "1.5px solid rgba(255,255,255,0.12)" }}>
@@ -224,6 +208,7 @@ export default function LoginPage() {
                   placeholder="10-digit number"
                   value={phone}
                   onChange={e => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                  onKeyDown={e => e.key === "Enter" && phone.length === 10 && !loading && handleSendOtp()}
                   className="flex-1 min-w-0 px-4 text-white text-sm font-medium outline-none bg-transparent placeholder:text-white/20"
                   style={{ height: "52px" }}
                 />
@@ -246,10 +231,16 @@ export default function LoginPage() {
               <p className="text-white text-base font-bold mb-0.5">Enter OTP</p>
               <p className="text-xs mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>
                 Sent to +91 {phone} ·{" "}
-                <button onClick={() => { setStep("phone"); setOtp(""); confirmationRef.current = null; }} style={{ color: "#A78BFA" }}>
-                  Change
-                </button>
+                <button onClick={resetPhone} style={{ color: "#A78BFA" }}>Change</button>
               </p>
+
+              {/* Dev fallback: show OTP on screen when SMS not configured */}
+              {devOtp && (
+                <div className="mb-3 px-3 py-2 rounded-xl text-center text-xs font-mono font-bold"
+                  style={{ background: "rgba(124,58,237,0.15)", color: "#C4B5FD", border: "1px solid rgba(124,58,237,0.3)" }}>
+                  Dev OTP: {devOtp}
+                </div>
+              )}
 
               <div className="mb-4">
                 <OtpBoxes value={otp} onChange={setOtp} />
@@ -265,6 +256,13 @@ export default function LoginPage() {
                 }}
               >
                 {loading ? "Verifying…" : "Verify & Sign In"} {!loading && <ArrowRight size={16} />}
+              </button>
+
+              <button onClick={handleSendOtp} disabled={loading}
+                className="w-full mt-2 text-xs font-medium py-2"
+                style={{ color: "rgba(255,255,255,0.3)" }}
+              >
+                Resend OTP
               </button>
             </>
           )}

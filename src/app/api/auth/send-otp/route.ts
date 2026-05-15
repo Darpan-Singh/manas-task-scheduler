@@ -6,37 +6,34 @@ function generateCode(): string {
 }
 
 async function sendSms(phone: string, otp: string): Promise<void> {
-  const sid   = process.env.TWILIO_ACCOUNT_SID;
-  const token = process.env.TWILIO_AUTH_TOKEN;
-  const from  = process.env.TWILIO_PHONE_NUMBER;
+  const apiKey = process.env.FAST2SMS_API_KEY;
 
-  if (!sid || !token || !from) {
-    console.log(`[OTP] Twilio not configured — OTP for ${phone}: ${otp}`);
+  if (!apiKey) {
+    console.log(`[OTP] Fast2SMS not configured — OTP for ${phone}: ${otp}`);
     throw new Error("SMS provider not configured");
   }
 
-  const body = `Your Tasky OTP is ${otp}. Valid for 5 minutes. Do not share this code.`;
-  const to   = `+91${phone}`;
-
-  const res = await fetch(
-    `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString("base64")}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({ To: to, From: from, Body: body }).toString(),
-    }
-  );
+  const res = await fetch("https://www.fast2sms.com/dev/bulkV2", {
+    method: "POST",
+    headers: {
+      authorization: apiKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      route: "q",
+      numbers: phone,
+      message: `Your Tasky OTP is ${otp}. Valid for 5 minutes. Do not share.`,
+      flash: 0,
+    }),
+  });
 
   const json = await res.json().catch(() => null);
-  if (!res.ok || json?.status === "failed") {
-    console.error(`[OTP] Twilio error for ${phone}:`, json);
-    throw new Error(json?.message ?? "Twilio request failed");
+  if (!res.ok || json?.return === false) {
+    console.error(`[OTP] Fast2SMS error for ${phone}:`, json);
+    throw new Error(json?.message?.[0] ?? "SMS send failed");
   }
 
-  console.log(`[OTP] Sent to ${to}, sid: ${json?.sid}`);
+  console.log(`[OTP] Fast2SMS sent to ${phone}:`, json?.request_id);
 }
 
 export async function POST(req: NextRequest) {
