@@ -72,7 +72,7 @@ export default function TaskModal({ open, onClose, onSave, initial, defaultCateg
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="mx-4 rounded-2xl max-w-md max-h-[90svh] flex flex-col overflow-hidden p-0">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-md rounded-2xl max-h-[90svh] flex flex-col overflow-hidden p-0">
         <DialogHeader className="px-5 pt-5 pb-3 shrink-0">
           <DialogTitle className="text-lg font-semibold">
             {initial ? "Edit Task" : "New Task"}
@@ -108,12 +108,9 @@ export default function TaskModal({ open, onClose, onSave, initial, defaultCateg
               <SelectContent>
                 {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => (
                   <SelectItem key={key} value={key}>
-                    <span className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cfg.color }} />
-                      <span>
-                        <span className="font-semibold">{cfg.label}</span>
-                        <span className="text-gray-400 text-xs"> · {cfg.sub}</span>
-                      </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.color }} />
+                      <span className="font-semibold">{cfg.label}</span>
                     </span>
                   </SelectItem>
                 ))}
