@@ -23,6 +23,7 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
+  const [animating, setAnimating] = useState<Set<string>>(new Set());
 
   const fetchTasks = async () => {
     const res = await fetch(`/api/tasks?category=${category}`);
@@ -36,12 +37,27 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
   }, [category]);
 
   const handleToggle = async (task: Task) => {
-    await fetch(`/api/tasks/${task.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed: !task.completed }),
-    });
-    fetchTasks();
+    const completing = !task.completed;
+
+    // Optimistic update
+    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, completed: completing } : t));
+
+    // Trigger tick animation when completing
+    if (completing) {
+      setAnimating(prev => new Set(prev).add(task.id));
+      setTimeout(() => setAnimating(prev => { const s = new Set(prev); s.delete(task.id); return s; }), 500);
+    }
+
+    try {
+      await fetch(`/api/tasks/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: completing }),
+      });
+    } catch {
+      // Revert on failure
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, completed: task.completed } : t));
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -116,6 +132,7 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
                 key={task.id}
                 task={task}
                 color={cfg.color}
+                isAnimating={animating.has(task.id)}
                 onToggle={() => handleToggle(task)}
                 onEdit={() => { setEditing(task); setModalOpen(true); }}
                 onDelete={() => handleDelete(task.id)}
@@ -131,6 +148,7 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
                     key={task.id}
                     task={task}
                     color={cfg.color}
+                    isAnimating={animating.has(task.id)}
                     onToggle={() => handleToggle(task)}
                     onEdit={() => { setEditing(task); setModalOpen(true); }}
                     onDelete={() => handleDelete(task.id)}
@@ -166,12 +184,14 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
 function TaskCard({
   task,
   color,
+  isAnimating,
   onToggle,
   onEdit,
   onDelete,
 }: {
   task: Task;
   color: string;
+  isAnimating: boolean;
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -188,7 +208,11 @@ function TaskCard({
     >
       <button onClick={onToggle} className="mt-0.5 flex-shrink-0">
         {task.completed ? (
-          <CheckCircle2 size={22} style={{ color }} />
+          <CheckCircle2
+            size={22}
+            style={{ color }}
+            className={isAnimating ? "tick-pop" : ""}
+          />
         ) : (
           <Circle size={22} className="text-gray-300" />
         )}
