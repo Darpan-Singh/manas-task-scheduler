@@ -14,6 +14,7 @@ interface TaskModalProps {
   onSave: (task: Partial<Task>) => Promise<void>;
   initial?: Task | null;
   defaultCategory?: Category;
+  spaceId?: string | null;
 }
 
 // Convert ISO string → datetime-local input value (YYYY-MM-DDTHH:MM)
@@ -25,7 +26,7 @@ function toDatetimeLocal(iso: string): string {
   }
 }
 
-export default function TaskModal({ open, onClose, onSave, initial, defaultCategory }: TaskModalProps) {
+export default function TaskModal({ open, onClose, onSave, initial, defaultCategory, spaceId }: TaskModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<Category>(defaultCategory || "TASKS");
@@ -61,6 +62,7 @@ export default function TaskModal({ open, onClose, onSave, initial, defaultCateg
         priority,
         // Send as full ISO string so the server stores date + time
         dueDate: deadline ? new Date(deadline).toISOString() : null,
+        spaceId: spaceId ?? null,
       });
       onClose();
     } finally {

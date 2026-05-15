@@ -1,4 +1,12 @@
 export type Category = "TASKS" | "TESTS" | "PRACTISE" | "REVISION";
+
+export interface Space {
+  id: string;
+  name: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+}
 export type Priority = "LOW" | "MEDIUM" | "HIGH";
 
 export interface Task {
@@ -12,6 +20,7 @@ export interface Task {
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  spaceId: string | null;
 }
 
 export const CATEGORY_CONFIG: Record<

@@ -73,6 +73,17 @@ model OtpCode {
   @@map("otp_codes")
 }
 
+model Space {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tasks     Task[]
+
+  @@map("spaces")
+}
+
 model Task {
   id          String    @id @default(cuid())
   title       String
@@ -84,6 +95,8 @@ model Task {
   completedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  spaceId     String?
+  space       Space?    @relation(fields: [spaceId], references: [id], onDelete: SetNull)
 
   @@map("tasks")
 }

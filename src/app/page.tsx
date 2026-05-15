@@ -4,8 +4,11 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { CheckCircle2, AlertTriangle } from "lucide-react";
 import TaskModal from "@/components/TaskModal";
+import SpaceSelector from "@/components/SpaceSelector";
 import BottomNav from "@/components/BottomNav";
-import { Task, Category, CATEGORY_CONFIG } from "@/lib/types";
+import { Task, Category, Space, CATEGORY_CONFIG } from "@/lib/types";
+
+const SPACE_KEY = "active_space_id";
 
 const QUADRANTS = [
   {
@@ -48,7 +51,11 @@ export default function HomePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [targetCategory, setTargetCategory] = useState<Category>("TASKS");
 
-  // Drag state — stored in refs so pointer move doesn't cause re-renders
+  // Spaces
+  const [spaces, setSpaces] = useState<Space[]>([]);
+  const [activeSpaceId, setActiveSpaceId] = useState<string | null>(null);
+
+  // Drag state
   const [isDragging, setIsDragging] = useState(false);
   const [hoveredQ, setHoveredQ] = useState<Category | null>(null);
   const [fabOffset, setFabOffset] = useState({ x: 0, y: 0 });
@@ -58,23 +65,67 @@ export default function HomePage() {
   const dragging = useRef(false);
   const fabStart = useRef({ x: 0, y: 0 });
 
-  const fetchTasks = async () => {
-    const res = await fetch("/api/tasks");
+  // Load spaces on mount
+  useEffect(() => {
+    fetch("/api/spaces")
+      .then((r) => r.json())
+      .then((data: Space[]) => {
+        if (!Array.isArray(data) || data.length === 0) return;
+        setSpaces(data);
+        const saved = typeof window !== "undefined" ? localStorage.getItem(SPACE_KEY) : null;
+        const valid = saved && data.find((s) => s.id === saved);
+        const id = valid ? saved : data[0].id;
+        setActiveSpaceId(id);
+      });
+  }, []);
+
+  const fetchTasks = useCallback(async (spaceId: string) => {
+    const res = await fetch(`/api/tasks?spaceId=${spaceId}`);
     setTasks(await res.json());
     setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (activeSpaceId) {
+      setLoading(true);
+      fetchTasks(activeSpaceId);
+    }
+  }, [activeSpaceId, fetchTasks]);
+
+  const handleSelectSpace = (id: string) => {
+    setActiveSpaceId(id);
+    localStorage.setItem(SPACE_KEY, id);
   };
-  useEffect(() => { fetchTasks(); }, []);
+
+  const handleCreateSpace = async (name: string): Promise<Space> => {
+    const res = await fetch("/api/spaces", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    const space: Space = await res.json();
+    setSpaces((prev) => [...prev, space]);
+    return space;
+  };
+
+  const handleDeleteSpace = async (id: string) => {
+    await fetch(`/api/spaces/${id}`, { method: "DELETE" });
+    setSpaces((prev) => prev.filter((s) => s.id !== id));
+    if (activeSpaceId === id) {
+      const other = spaces.find((s) => s.id !== id);
+      if (other) handleSelectSpace(other.id);
+    }
+  };
 
   const handleAddTask = async (data: Partial<Task>) => {
     await fetch("/api/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, spaceId: activeSpaceId }),
     });
-    fetchTasks();
+    if (activeSpaceId) fetchTasks(activeSpaceId);
   };
 
-  // Given a pointer position, figure out which quadrant it's over
   const getQuadrant = useCallback((clientX: number, clientY: number): Category | null => {
     const grid = gridRef.current;
     if (!grid) return null;
@@ -90,7 +141,6 @@ export default function HomePage() {
     return "REVISION";
   }, []);
 
-  // Pointer events — single handler for mouse + touch
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     e.preventDefault();
     fabRef.current?.setPointerCapture(e.pointerId);
@@ -102,31 +152,22 @@ export default function HomePage() {
 
   const handlePointerMove = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
     if (!dragging.current) return;
-    const dx = e.clientX - fabStart.current.x;
-    const dy = e.clientY - fabStart.current.y;
-    setFabOffset({ x: dx, y: dy });
+    setFabOffset({ x: e.clientX - fabStart.current.x, y: e.clientY - fabStart.current.y });
     setHoveredQ(getQuadrant(e.clientX, e.clientY));
   }, [getQuadrant]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
     if (!dragging.current) return;
     dragging.current = false;
-
     const dx = e.clientX - fabStart.current.x;
     const dy = e.clientY - fabStart.current.y;
     const moved = Math.abs(dx) + Math.abs(dy) > 12;
     const q = getQuadrant(e.clientX, e.clientY);
-
-    // Animate back first, then open modal
     setFabOffset({ x: 0, y: 0 });
     setHoveredQ(null);
     setIsDragging(false);
-
     if (moved && q) {
-      setTimeout(() => {
-        setTargetCategory(q);
-        setModalOpen(true);
-      }, 180);
+      setTimeout(() => { setTargetCategory(q); setModalOpen(true); }, 180);
     }
   }, [getQuadrant]);
 
@@ -144,11 +185,20 @@ export default function HomePage() {
 
   return (
     <div className="page-enter min-h-screen bg-[#0A0A0F] flex flex-col max-w-md mx-auto pb-16">
-      {/* Header */}
       <header className="flex items-center justify-between px-5 pt-5 pb-3">
         <div>
           <p className="text-white/40 text-xs uppercase tracking-widest font-medium">Eisenhower Matrix</p>
-          <p className="text-white font-bold text-xl">My Tasks</p>
+          {spaces.length > 0 ? (
+            <SpaceSelector
+              spaces={spaces}
+              activeSpaceId={activeSpaceId}
+              onSelectSpace={handleSelectSpace}
+              onCreateSpace={handleCreateSpace}
+              onDeleteSpace={handleDeleteSpace}
+            />
+          ) : (
+            <p className="text-white font-bold text-xl">My Tasks</p>
+          )}
         </div>
         <button
           onClick={() => { setTargetCategory("TASKS"); setModalOpen(true); }}
@@ -158,7 +208,6 @@ export default function HomePage() {
         </button>
       </header>
 
-      {/* Grid */}
       <main
         ref={gridRef}
         className="flex-1 grid grid-cols-2 gap-2 px-2 relative"
@@ -172,7 +221,7 @@ export default function HomePage() {
           return (
             <Link
               key={q.id}
-              href={`/category/${q.id.toLowerCase()}`}
+              href={`/category/${q.id.toLowerCase()}${activeSpaceId ? `?spaceId=${activeSpaceId}` : ""}`}
               onClick={(e) => isDragging && e.preventDefault()}
               className={`relative flex flex-col justify-between p-5 rounded-3xl bg-gradient-to-br ${q.bg} overflow-hidden`}
               style={{
@@ -182,7 +231,6 @@ export default function HomePage() {
                 boxShadow: isHovered ? `0 0 40px ${q.color}80, 0 8px 32px rgba(0,0,0,0.4)` : "0 4px 20px rgba(0,0,0,0.3)",
               }}
             >
-              {/* Dot pattern */}
               <div
                 className="absolute inset-0"
                 style={{
@@ -193,7 +241,6 @@ export default function HomePage() {
                 }}
               />
 
-              {/* Drop target overlay */}
               {isHovered && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/10 rounded-3xl backdrop-blur-[2px]">
                   <div
@@ -206,13 +253,11 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* Label */}
               <div className="relative" style={{ opacity: isHovered ? 0.3 : 1, transition: "opacity 0.2s" }}>
                 <p className="text-white font-black text-xl tracking-wide">{q.label}</p>
                 <p className="text-white/60 text-xs font-medium mt-0.5">{q.sub}</p>
               </div>
 
-              {/* Stats */}
               <div className="relative mt-4 space-y-2" style={{ opacity: isHovered ? 0.3 : 1, transition: "opacity 0.2s" }}>
                 {loading ? (
                   <>
@@ -255,13 +300,11 @@ export default function HomePage() {
           );
         })}
 
-        {/* Center axis lines */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 bottom-0 left-1/2 w-px bg-black/40" />
           <div className="absolute left-0 right-0 top-1/2 h-px bg-black/40" />
         </div>
 
-        {/* FAB — always at center, draggable */}
         <button
           ref={fabRef}
           onPointerDown={handlePointerDown}
@@ -269,10 +312,7 @@ export default function HomePage() {
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
           onClick={() => {
-            if (!isDragging) {
-              setTargetCategory("TASKS");
-              setModalOpen(true);
-            }
+            if (!isDragging) { setTargetCategory("TASKS"); setModalOpen(true); }
           }}
           className="absolute z-30 flex flex-col items-center justify-center rounded-full"
           style={{
@@ -300,41 +340,29 @@ export default function HomePage() {
         >
           <span
             className="font-light leading-none transition-all duration-150"
-            style={{
-              fontSize: isDragging ? "2rem" : "1.75rem",
-              color: hoveredCfg ? "white" : "#1a1a1a",
-            }}
+            style={{ fontSize: isDragging ? "2rem" : "1.75rem", color: hoveredCfg ? "white" : "#1a1a1a" }}
           >
             +
           </span>
           {!isDragging && (
-            <span
-              className="text-[9px] font-bold uppercase tracking-wider mt-0.5 leading-none"
-              style={{ color: "#6b7280" }}
-            >
+            <span className="text-[9px] font-bold uppercase tracking-wider mt-0.5 leading-none" style={{ color: "#6b7280" }}>
               drag
             </span>
           )}
           {isDragging && hoveredCfg && (
-            <span
-              className="text-[9px] font-black uppercase tracking-wider leading-none text-white"
-              style={{ marginTop: 2 }}
-            >
+            <span className="text-[9px] font-black uppercase tracking-wider leading-none text-white" style={{ marginTop: 2 }}>
               {hoveredCfg.label}
             </span>
           )}
         </button>
       </main>
 
-      {/* Drag hint */}
       <div className="flex items-center justify-center py-2">
         <p
           className="text-xs font-semibold tracking-widest uppercase transition-all duration-300"
           style={{ color: isDragging && hoveredCfg ? hoveredCfg.color : "rgba(255,255,255,0.2)" }}
         >
-          {isDragging && hoveredCfg
-            ? `Adding to ${hoveredCfg.label}`
-            : "Drag + to quadrant · Tap to quick-add"}
+          {isDragging && hoveredCfg ? `Adding to ${hoveredCfg.label}` : "Drag + to quadrant · Tap to quick-add"}
         </p>
       </div>
 
@@ -345,6 +373,7 @@ export default function HomePage() {
         onClose={() => setModalOpen(false)}
         onSave={handleAddTask}
         defaultCategory={targetCategory}
+        spaceId={activeSpaceId}
       />
     </div>
   );
