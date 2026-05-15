@@ -103,7 +103,10 @@ export default function TaskModal({ open, onClose, onSave, initial, defaultCateg
           <div className="grid grid-cols-2 gap-3">
             <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
               <SelectTrigger className="rounded-xl">
-                <SelectValue />
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: CATEGORY_CONFIG[category].color }} />
+                  <span className="font-semibold">{CATEGORY_CONFIG[category].label}</span>
+                </span>
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => (
