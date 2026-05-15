@@ -1,38 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 function generateCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 async function sendEmail(email: string, otp: string): Promise<void> {
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_APP_PASSWORD;
+  const apiKey = process.env.RESEND_API_KEY;
 
-  if (!user || !pass) {
-    console.log(`[OTP] Gmail not configured — OTP for ${email}: ${otp}`);
+  if (!apiKey) {
+    console.log(`[OTP] Resend not configured — OTP for ${email}: ${otp}`);
     throw new Error("Email provider not configured");
   }
 
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: { user, pass },
-  });
+  const resend = new Resend(apiKey);
 
-  await transporter.sendMail({
-    from: `"Tasky" <${user}>`,
+  const { error } = await resend.emails.send({
+    from: "Tasky <onboarding@resend.dev>",
     to: email,
     subject: "Your Tasky sign-in code",
     html: `
       <div style="font-family:sans-serif;max-width:400px;margin:0 auto;padding:32px 24px;background:#fff">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px">
-          <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#7C3AED,#2563EB);display:inline-flex;align-items:center;justify-content:center">
-            <span style="color:#fff;font-size:18px">✦</span>
-          </div>
-          <span style="font-size:20px;font-weight:900;color:#111">Tasky</span>
+        <div style="margin-bottom:24px">
+          <span style="font-size:20px;font-weight:900;color:#111">✦ Tasky</span>
         </div>
-        <p style="color:#374151;font-size:15px;margin-bottom:20px">Here is your sign-in code:</p>
+        <p style="color:#374151;font-size:15px;margin-bottom:20px">Your sign-in code is:</p>
         <div style="background:#F5F3FF;border-radius:16px;padding:24px;text-align:center;font-size:36px;font-weight:900;letter-spacing:10px;color:#7C3AED">${otp}</div>
         <p style="color:#9CA3AF;font-size:13px;margin-top:20px;line-height:1.6">
           Valid for <strong>5 minutes</strong>. Do not share this code.<br/>
@@ -41,6 +34,11 @@ async function sendEmail(email: string, otp: string): Promise<void> {
       </div>
     `,
   });
+
+  if (error) {
+    console.error(`[OTP] Resend error for ${email}:`, error);
+    throw new Error(error.message);
+  }
 
   console.log(`[OTP] Email sent to ${email}`);
 }
