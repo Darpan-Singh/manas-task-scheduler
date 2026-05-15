@@ -8,7 +8,23 @@ import SpaceSelector from "@/components/SpaceSelector";
 import BottomNav from "@/components/BottomNav";
 import { Task, Category, Space, CATEGORY_CONFIG } from "@/lib/types";
 
+const SPACES_KEY = "spaces_v1";
 const SPACE_KEY = "active_space_id";
+
+function loadSpaces(): Space[] {
+  try {
+    const raw = localStorage.getItem(SPACES_KEY);
+    const parsed: Space[] = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+  } catch {}
+  const defaultSpace: Space = { id: crypto.randomUUID(), name: "Personal" };
+  localStorage.setItem(SPACES_KEY, JSON.stringify([defaultSpace]));
+  return [defaultSpace];
+}
+
+function persistSpaces(spaces: Space[]) {
+  localStorage.setItem(SPACES_KEY, JSON.stringify(spaces));
+}
 
 const QUADRANTS = [
   {
@@ -65,18 +81,13 @@ export default function HomePage() {
   const dragging = useRef(false);
   const fabStart = useRef({ x: 0, y: 0 });
 
-  // Load spaces on mount
+  // Load spaces from localStorage on mount
   useEffect(() => {
-    fetch("/api/spaces")
-      .then((r) => r.json())
-      .then((data: Space[]) => {
-        if (!Array.isArray(data) || data.length === 0) return;
-        setSpaces(data);
-        const saved = typeof window !== "undefined" ? localStorage.getItem(SPACE_KEY) : null;
-        const valid = saved && data.find((s) => s.id === saved);
-        const id = valid ? saved : data[0].id;
-        setActiveSpaceId(id);
-      });
+    const loaded = loadSpaces();
+    setSpaces(loaded);
+    const saved = localStorage.getItem(SPACE_KEY);
+    const valid = saved && loaded.find((s) => s.id === saved);
+    setActiveSpaceId(valid ? saved! : loaded[0].id);
   }, []);
 
   const fetchTasks = useCallback(async (spaceId: string) => {
@@ -97,22 +108,20 @@ export default function HomePage() {
     localStorage.setItem(SPACE_KEY, id);
   };
 
-  const handleCreateSpace = async (name: string): Promise<Space> => {
-    const res = await fetch("/api/spaces", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
-    const space: Space = await res.json();
-    setSpaces((prev) => [...prev, space]);
+  const handleCreateSpace = (name: string): Space => {
+    const space: Space = { id: crypto.randomUUID(), name };
+    const next = [...spaces, space];
+    setSpaces(next);
+    persistSpaces(next);
     return space;
   };
 
-  const handleDeleteSpace = async (id: string) => {
-    await fetch(`/api/spaces/${id}`, { method: "DELETE" });
-    setSpaces((prev) => prev.filter((s) => s.id !== id));
+  const handleDeleteSpace = (id: string) => {
+    const next = spaces.filter((s) => s.id !== id);
+    setSpaces(next);
+    persistSpaces(next);
     if (activeSpaceId === id) {
-      const other = spaces.find((s) => s.id !== id);
+      const other = next[0];
       if (other) handleSelectSpace(other.id);
     }
   };

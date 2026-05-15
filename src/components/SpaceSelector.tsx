@@ -8,8 +8,8 @@ interface SpaceSelectorProps {
   spaces: Space[];
   activeSpaceId: string | null;
   onSelectSpace: (id: string) => void;
-  onCreateSpace: (name: string) => Promise<Space>;
-  onDeleteSpace: (id: string) => Promise<void>;
+  onCreateSpace: (name: string) => Space;
+  onDeleteSpace: (id: string) => void;
 }
 
 export default function SpaceSelector({
@@ -22,7 +22,6 @@ export default function SpaceSelector({
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
-  const [saving, setSaving] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -44,27 +43,22 @@ export default function SpaceSelector({
     if (creating) setTimeout(() => inputRef.current?.focus(), 50);
   }, [creating]);
 
-  const handleCreate = async () => {
-    if (!newName.trim() || saving) return;
-    setSaving(true);
-    try {
-      const space = await onCreateSpace(newName.trim());
-      setNewName("");
-      setCreating(false);
-      onSelectSpace(space.id);
-    } finally {
-      setSaving(false);
-    }
+  const handleCreate = () => {
+    if (!newName.trim()) return;
+    const space = onCreateSpace(newName.trim());
+    setNewName("");
+    setCreating(false);
+    onSelectSpace(space.id);
+    setOpen(false);
   };
 
-  const handleDelete = async (space: Space) => {
+  const handleDelete = (space: Space) => {
     if (spaces.length <= 1) return;
-    const isActive = space.id === activeSpaceId;
-    if (isActive) {
+    if (space.id === activeSpaceId) {
       const other = spaces.find((s) => s.id !== space.id);
       if (other) onSelectSpace(other.id);
     }
-    await onDeleteSpace(space.id);
+    onDeleteSpace(space.id);
   };
 
   return (
@@ -132,7 +126,7 @@ export default function SpaceSelector({
                 />
                 <button
                   onClick={handleCreate}
-                  disabled={!newName.trim() || saving}
+                  disabled={!newName.trim()}
                   className="text-xs font-bold text-blue-400 hover:text-blue-300 disabled:opacity-40 px-1 flex-shrink-0"
                 >
                   Add
