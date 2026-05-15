@@ -29,63 +29,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
     ...googleProvider,
-    // Legacy: custom OTP via DB
+    // Email OTP — code stored in OtpCode table, looked up by email
     Credentials({
-      id: "phone-otp",
-      credentials: { phone: {}, otp: {} },
+      id: "email-otp",
+      credentials: { email: {}, otp: {} },
       async authorize(credentials) {
-        const phone = credentials?.phone as string | undefined;
+        const email = credentials?.email as string | undefined;
         const otp   = credentials?.otp   as string | undefined;
-        if (!phone || !otp) return null;
+        if (!email || !otp) return null;
 
         const otpRecord = await prisma.otpCode.findFirst({
-          where: { phone, code: otp, used: false, expires: { gt: new Date() } },
+          where: { phone: email, code: otp, used: false, expires: { gt: new Date() } },
           orderBy: { createdAt: "desc" },
         });
         if (!otpRecord) return null;
 
         await prisma.otpCode.update({ where: { id: otpRecord.id }, data: { used: true } });
 
-        let user = await prisma.user.findUnique({ where: { phone } });
+        let user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
           user = await prisma.user.create({
             data: {
-              phone,
-              name: `User ${phone.slice(-4)}`,
-              avatarStyle: "avataaars",
-              avatarSeed: Math.random().toString(36).slice(2, 8),
-            },
-          });
-        }
-        return { id: user.id, name: user.name, email: user.email, image: user.image, phone: user.phone, avatarStyle: user.avatarStyle, avatarSeed: user.avatarSeed };
-      },
-    }),
-
-    // Firebase phone auth — token verified client-side by Firebase
-    Credentials({
-      id: "firebase-phone",
-      credentials: { idToken: {} },
-      async authorize(credentials) {
-        const idToken = credentials?.idToken as string | undefined;
-        if (!idToken) return null;
-
-        // Verify token via Firebase REST (no Admin SDK needed)
-        const res = await fetch(
-          `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`,
-          { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ idToken }) }
-        );
-        const data = await res.json();
-        const fbUser = data.users?.[0];
-        if (!fbUser?.phoneNumber) return null;
-
-        const phone = fbUser.phoneNumber.replace(/^\+91/, "");
-
-        let user = await prisma.user.findUnique({ where: { phone } });
-        if (!user) {
-          user = await prisma.user.create({
-            data: {
-              phone,
-              name: `User ${phone.slice(-4)}`,
+              email,
+              name: email.split("@")[0],
               avatarStyle: "avataaars",
               avatarSeed: Math.random().toString(36).slice(2, 8),
             },

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
-import { ArrowRight, Sparkles, ArrowLeft, Smartphone } from "lucide-react";
+import { ArrowRight, Sparkles, ArrowLeft, Mail } from "lucide-react";
 
 const GOOGLE_ICON = (
   <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
@@ -14,8 +14,8 @@ const GOOGLE_ICON = (
   </svg>
 );
 
-type Tab  = "google" | "phone";
-type Step = "phone" | "otp";
+type Tab  = "google" | "email";
+type Step = "email" | "otp";
 
 function OtpBoxes({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -64,12 +64,12 @@ export default function LoginPage() {
   const { status } = useSession();
 
   const [tab,     setTab]     = useState<Tab>("google");
-  const [phone,   setPhone]   = useState("");
+  const [email,   setEmail]   = useState("");
   const [otp,     setOtp]     = useState("");
-  const [step,    setStep]    = useState<Step>("phone");
+  const [step,    setStep]    = useState<Step>("email");
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
-  const [devOtp,  setDevOtp]  = useState("");   // shown in dev when SMS not configured
+  const [devOtp,  setDevOtp]  = useState("");
 
   useEffect(() => {
     if (status === "authenticated") router.replace("/profile");
@@ -88,11 +88,11 @@ export default function LoginPage() {
       const res  = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ email }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Failed to send OTP"); return; }
-      if (data.devOtp) setDevOtp(data.devOtp);  // dev fallback
+      if (data.devOtp) setDevOtp(data.devOtp);
       setStep("otp");
     } catch {
       setError("Network error. Check your connection.");
@@ -105,8 +105,8 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const result = await signIn("phone-otp", { phone, otp, redirect: false });
-      if (result?.error) { setError("Invalid OTP. Please try again."); return; }
+      const result = await signIn("email-otp", { email, otp, redirect: false });
+      if (result?.error) { setError("Invalid or expired OTP. Please try again."); return; }
       router.replace("/profile");
     } catch {
       setError("Verification failed. Try again.");
@@ -115,8 +115,8 @@ export default function LoginPage() {
     }
   }
 
-  function resetPhone() {
-    setStep("phone");
+  function reset() {
+    setStep("email");
     setOtp("");
     setError("");
     setDevOtp("");
@@ -163,9 +163,9 @@ export default function LoginPage() {
         >
           {/* Tabs */}
           <div className="flex rounded-xl p-1 mb-5" style={{ background: "rgba(255,255,255,0.05)" }}>
-            {(["google", "phone"] as Tab[]).map(t => (
+            {(["google", "email"] as Tab[]).map(t => (
               <button key={t}
-                onClick={() => { setTab(t); resetPhone(); }}
+                onClick={() => { setTab(t); reset(); }}
                 className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all"
                 style={{
                   background: tab === t ? "rgba(124,58,237,0.45)" : "transparent",
@@ -173,7 +173,7 @@ export default function LoginPage() {
                   boxShadow: tab === t ? "0 2px 10px rgba(124,58,237,0.3)" : "none",
                 }}
               >
-                {t === "google" ? "Google" : "Phone"}
+                {t === "google" ? "Google" : "Email"}
               </button>
             ))}
           </div>
@@ -190,55 +190,52 @@ export default function LoginPage() {
                 {loading ? "Redirecting…" : "Continue with Google"}
               </button>
             </>
-          ) : step === "phone" ? (
+          ) : step === "email" ? (
             <>
-              <p className="text-white text-base font-bold mb-0.5">Enter your number</p>
-              <p className="text-xs mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>We'll send a 6-digit OTP via SMS</p>
+              <p className="text-white text-base font-bold mb-0.5">Sign in with email</p>
+              <p className="text-xs mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>We'll send a 6-digit code to your inbox</p>
 
               <div className="flex items-center rounded-2xl mb-3 overflow-hidden"
                 style={{ background: "rgba(255,255,255,0.07)", border: "1.5px solid rgba(255,255,255,0.12)" }}>
-                <div className="flex items-center gap-1.5 px-4 shrink-0 border-r"
-                  style={{ height: "52px", borderColor: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.55)" }}>
-                  <Smartphone size={13} />
-                  <span className="text-sm font-bold">+91</span>
+                <div className="flex items-center px-4 shrink-0" style={{ color: "rgba(255,255,255,0.4)" }}>
+                  <Mail size={15} />
                 </div>
                 <input
-                  type="tel"
-                  inputMode="numeric"
-                  placeholder="10-digit number"
-                  value={phone}
-                  onChange={e => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                  onKeyDown={e => e.key === "Enter" && phone.length === 10 && !loading && handleSendOtp()}
-                  className="flex-1 min-w-0 px-4 text-white text-sm font-medium outline-none bg-transparent placeholder:text-white/20"
+                  type="email"
+                  inputMode="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value.trim())}
+                  onKeyDown={e => e.key === "Enter" && email.includes("@") && !loading && handleSendOtp()}
+                  className="flex-1 min-w-0 pr-4 text-white text-sm font-medium outline-none bg-transparent placeholder:text-white/20"
                   style={{ height: "52px" }}
                 />
               </div>
 
-              <button onClick={handleSendOtp} disabled={loading || phone.length < 10}
+              <button onClick={handleSendOtp} disabled={loading || !email.includes("@")}
                 className="w-full rounded-2xl flex items-center justify-center gap-2 font-semibold text-white transition-all active:scale-[0.98]"
                 style={{
                   height: "52px",
                   background: "linear-gradient(135deg, #7C3AED, #2563EB)",
-                  opacity: loading || phone.length < 10 ? 0.45 : 1,
-                  boxShadow: phone.length >= 10 ? "0 4px 20px rgba(124,58,237,0.45)" : "none",
+                  opacity: loading || !email.includes("@") ? 0.45 : 1,
+                  boxShadow: email.includes("@") ? "0 4px 20px rgba(124,58,237,0.45)" : "none",
                 }}
               >
-                {loading ? "Sending…" : "Send OTP"} {!loading && <ArrowRight size={16} />}
+                {loading ? "Sending…" : "Send code"} {!loading && <ArrowRight size={16} />}
               </button>
             </>
           ) : (
             <>
-              <p className="text-white text-base font-bold mb-0.5">Enter OTP</p>
+              <p className="text-white text-base font-bold mb-0.5">Check your inbox</p>
               <p className="text-xs mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>
-                Sent to +91 {phone} ·{" "}
-                <button onClick={resetPhone} style={{ color: "#A78BFA" }}>Change</button>
+                Code sent to {email} ·{" "}
+                <button onClick={reset} style={{ color: "#A78BFA" }}>Change</button>
               </p>
 
-              {/* Dev fallback: show OTP on screen when SMS not configured */}
               {devOtp && (
                 <div className="mb-3 px-3 py-2 rounded-xl text-center text-xs font-mono font-bold"
                   style={{ background: "rgba(124,58,237,0.15)", color: "#C4B5FD", border: "1px solid rgba(124,58,237,0.3)" }}>
-                  Dev OTP: {devOtp}
+                  Dev code: {devOtp}
                 </div>
               )}
 
@@ -262,7 +259,7 @@ export default function LoginPage() {
                 className="w-full mt-2 text-xs font-medium py-2"
                 style={{ color: "rgba(255,255,255,0.3)" }}
               >
-                Resend OTP
+                Resend code
               </button>
             </>
           )}
