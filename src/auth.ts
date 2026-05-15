@@ -27,6 +27,7 @@ const googleProvider =
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
+  trustHost: true,
   providers: [
     ...googleProvider,
     // Email OTP — code stored in OtpCode table, looked up by email
