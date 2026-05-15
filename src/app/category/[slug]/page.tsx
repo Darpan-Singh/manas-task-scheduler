@@ -71,7 +71,7 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
   const completed = tasks.filter((t) => t.completed);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col max-w-md mx-auto">
+    <div className="page-enter min-h-screen bg-gray-50 flex flex-col max-w-md mx-auto">
       {/* Header */}
       <header
         className="sticky top-0 z-10 px-5 py-4 flex items-center gap-3"
@@ -92,7 +92,18 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
       {/* Task list */}
       <main className="flex-1 px-4 py-4 space-y-2 pb-28">
         {loading ? (
-          <div className="text-center text-gray-400 py-16 text-sm">Loading...</div>
+          <div className="space-y-2">
+            {[68, 50, 75, 42].map((w, i) => (
+              <div key={i} className="bg-white rounded-2xl shadow-sm px-4 py-3 flex items-start gap-3">
+                <div className="w-[22px] h-[22px] rounded-full shimmer-light mt-0.5 flex-shrink-0" />
+                <div className="flex-1 space-y-2 py-0.5">
+                  <div className="h-4 rounded-full shimmer-light" style={{ width: `${w}%` }} />
+                  <div className="h-3 rounded-full shimmer-light w-2/5" />
+                  <div className="h-5 w-14 rounded-full shimmer-light" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : tasks.length === 0 ? (
           <div className="text-center text-gray-400 py-16">
             <p className="text-4xl mb-3">✓</p>

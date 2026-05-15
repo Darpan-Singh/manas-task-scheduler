@@ -44,6 +44,7 @@ const QUADRANTS = [
 
 export default function HomePage() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [targetCategory, setTargetCategory] = useState<Category>("TASKS");
 
@@ -60,6 +61,7 @@ export default function HomePage() {
   const fetchTasks = async () => {
     const res = await fetch("/api/tasks");
     setTasks(await res.json());
+    setLoading(false);
   };
   useEffect(() => { fetchTasks(); }, []);
 
@@ -141,7 +143,7 @@ export default function HomePage() {
   const hoveredCfg = hoveredQ ? QUADRANTS.find((q) => q.id === hoveredQ) : null;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] flex flex-col max-w-md mx-auto pb-16">
+    <div className="page-enter min-h-screen bg-[#0A0A0F] flex flex-col max-w-md mx-auto pb-16">
       {/* Header */}
       <header className="flex items-center justify-between px-5 pt-5 pb-3">
         <div>
@@ -212,31 +214,41 @@ export default function HomePage() {
 
               {/* Stats */}
               <div className="relative mt-4 space-y-2" style={{ opacity: isHovered ? 0.3 : 1, transition: "opacity 0.2s" }}>
-                <div className="flex items-end gap-2">
-                  <span className="text-white text-5xl font-bold leading-none">{stats.pending}</span>
-                  <span className="text-white/60 text-sm font-semibold mb-1">left</span>
-                </div>
-                <div className="flex gap-3 flex-wrap">
-                  {stats.completed > 0 && (
-                    <div className="flex items-center gap-1">
-                      <CheckCircle2 size={12} className="text-white/70" />
-                      <span className="text-white/70 text-xs font-semibold">{stats.completed} done</span>
+                {loading ? (
+                  <>
+                    <div className="shimmer h-12 w-16 rounded-xl" />
+                    <div className="shimmer h-3 w-20 rounded-full" />
+                    <div className="shimmer h-1 w-full rounded-full" />
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-end gap-2">
+                      <span className="text-white text-5xl font-bold leading-none">{stats.pending}</span>
+                      <span className="text-white/60 text-sm font-semibold mb-1">left</span>
                     </div>
-                  )}
-                  {stats.overdue > 0 && (
-                    <div className="flex items-center gap-1">
-                      <AlertTriangle size={12} className="text-yellow-300" />
-                      <span className="text-yellow-300 text-xs font-semibold">{stats.overdue} late</span>
+                    <div className="flex gap-3 flex-wrap">
+                      {stats.completed > 0 && (
+                        <div className="flex items-center gap-1">
+                          <CheckCircle2 size={12} className="text-white/70" />
+                          <span className="text-white/70 text-xs font-semibold">{stats.completed} done</span>
+                        </div>
+                      )}
+                      {stats.overdue > 0 && (
+                        <div className="flex items-center gap-1">
+                          <AlertTriangle size={12} className="text-yellow-300" />
+                          <span className="text-yellow-300 text-xs font-semibold">{stats.overdue} late</span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                {(stats.pending + stats.completed) > 0 && (
-                  <div className="h-1 bg-white/20 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-white/70 rounded-full"
-                      style={{ width: `${Math.round((stats.completed / (stats.pending + stats.completed)) * 100)}%` }}
-                    />
-                  </div>
+                    {(stats.pending + stats.completed) > 0 && (
+                      <div className="h-1 bg-white/20 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-white/70 rounded-full"
+                          style={{ width: `${Math.round((stats.completed / (stats.pending + stats.completed)) * 100)}%` }}
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </Link>

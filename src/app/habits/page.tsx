@@ -99,7 +99,7 @@ export default function HabitsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA] max-w-md mx-auto pb-16">
+    <div className="page-enter min-h-screen bg-[#F7F8FA] max-w-md mx-auto pb-16">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4 flex items-center gap-3">
         <Link href="/" className="text-gray-400 hover:text-gray-700 transition-colors">
@@ -155,8 +155,24 @@ export default function HabitsPage() {
 
         {/* Habit list */}
         {loading ? (
-          <div className="text-center text-gray-400 py-16 text-sm animate-pulse">
-            Loading habits...
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl shimmer-light flex-shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 rounded-full shimmer-light w-3/5" />
+                    <div className="h-3 rounded-full shimmer-light w-2/5" />
+                  </div>
+                  <div className="w-16 h-6 rounded-full shimmer-light" />
+                </div>
+                <div className="flex gap-1.5">
+                  {[...Array(7)].map((_, j) => (
+                    <div key={j} className="flex-1 h-8 rounded-xl shimmer-light" />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">

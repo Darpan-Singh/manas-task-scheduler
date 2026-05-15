@@ -95,10 +95,59 @@ export default function DashboardPage() {
   }, []);
 
   if (!data) return (
-    <div className="min-h-screen bg-[#06060F] flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-10 h-10 rounded-full border-2 border-[#2AACBF]/30 border-t-[#2AACBF] animate-spin" />
-        <p className="text-white/20 text-xs tracking-widest uppercase">Loading analytics</p>
+    <div className="page-enter min-h-screen max-w-md mx-auto flex flex-col pb-16" style={{ background: "#06060F" }}>
+      {/* Header skeleton */}
+      <div className="px-5 pt-8 pb-6 space-y-5">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-2xl shimmer flex-shrink-0" />
+          <div className="space-y-1.5">
+            <div className="h-2.5 w-16 rounded-full shimmer" />
+            <div className="h-6 w-24 rounded-xl shimmer" />
+          </div>
+        </div>
+        {/* Score card skeleton */}
+        <div className="rounded-3xl p-5" style={{ background: "#0E1628", border: "1px solid rgba(42,172,191,0.1)" }}>
+          <div className="flex items-center gap-5">
+            <div className="w-[140px] h-[140px] rounded-full shimmer flex-shrink-0" />
+            <div className="flex-1 space-y-4">
+              <div className="space-y-1.5">
+                <div className="h-2 w-20 rounded-full shimmer" />
+                <div className="h-8 w-16 rounded-xl shimmer" />
+                <div className="h-1 rounded-full shimmer" />
+              </div>
+              <div className="flex gap-4">
+                {[1,2,3].map(i => (
+                  <div key={i} className="space-y-1">
+                    <div className="h-2 w-10 rounded-full shimmer" />
+                    <div className="h-5 w-8 rounded shimmer" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* KPI grid skeleton */}
+      <div className="px-4 space-y-3">
+        <div className="grid grid-cols-2 gap-2.5">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="rounded-2xl p-3.5" style={{ background: "#0C0C1A", border: "1px solid rgba(255,255,255,0.04)" }}>
+              <div className="h-2.5 w-20 rounded-full shimmer mb-2" />
+              <div className="h-8 w-12 rounded-xl shimmer" />
+              <div className="h-2 w-16 rounded-full shimmer mt-1.5" />
+            </div>
+          ))}
+        </div>
+        {/* Section skeletons */}
+        {[180, 150, 200].map((h, i) => (
+          <div key={i} className="rounded-3xl overflow-hidden" style={{ background: "#0A0A18", border: "1px solid rgba(255,255,255,0.05)" }}>
+            <div className="h-px w-full shimmer" />
+            <div className="px-4 pt-4 pb-4 space-y-3">
+              <div className="h-4 w-32 rounded-full shimmer" />
+              <div className="rounded-xl shimmer" style={{ height: h }} />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -109,7 +158,7 @@ export default function DashboardPage() {
   const pieData = enriched.filter(c => c.total > 0).map(c => ({ name: c.displayName, value: c.total, color: c.color }));
 
   return (
-    <div className="min-h-screen max-w-md mx-auto flex flex-col pb-16" style={{ background: "#06060F" }}>
+    <div className="page-enter min-h-screen max-w-md mx-auto flex flex-col pb-16" style={{ background: "#06060F" }}>
 
       {/* ── Hero header ──────────────────────────────────────── */}
       <div className="relative overflow-hidden px-5 pt-8 pb-6">
