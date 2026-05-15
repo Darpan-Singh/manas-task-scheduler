@@ -6,7 +6,7 @@ import SessionProvider from "@/components/SessionProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Manas Task Scheduler",
+  title: "Tasky",
   description: "Smart task scheduler with analytics dashboard",
   manifest: "/manifest.json",
 };

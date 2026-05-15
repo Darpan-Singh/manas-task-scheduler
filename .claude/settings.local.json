@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --yes)"
-    ]
+      "Bash(vercel *)",
+      "Bash(curl -s -X POST https://manastaskscheduler.vercel.app/api/auth/send-otp -H \"Content-Type: application/json\" -d \"{\\\\\"phone\\\\\":\\\\\"9999999999\\\\\"}\")",
+      "Bash(curl *)",
+      "Bash(npm install *)"
+    ],
+    "defaultMode": "bypassPermissions"
   }
 }
