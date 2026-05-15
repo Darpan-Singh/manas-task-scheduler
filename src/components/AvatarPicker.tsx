@@ -38,12 +38,9 @@ export default function AvatarPicker({ currentStyle, currentSeed, onSave, onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}>
-      <div
-        className="w-full max-w-md rounded-t-3xl overflow-hidden"
-        style={{ background: "#13131F", maxHeight: "90vh", overflowY: "auto" }}
-      >
-        {/* Handle + header */}
-        <div className="px-5 pt-3 pb-4">
+      <div className="w-full max-w-md rounded-t-3xl flex flex-col" style={{ background: "#13131F", maxHeight: "90dvh" }}>
+        {/* Handle + header — sticky */}
+        <div className="px-5 pt-3 pb-4 flex-shrink-0">
           <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "rgba(255,255,255,0.18)" }} />
           <div className="flex items-center justify-between">
             <span className="text-white font-semibold text-lg">Choose Avatar</span>
@@ -52,6 +49,9 @@ export default function AvatarPicker({ currentStyle, currentSeed, onSave, onClos
             </button>
           </div>
         </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto flex-1">
 
         {/* Preview */}
         <div className="flex flex-col items-center pb-4">
@@ -150,6 +150,7 @@ export default function AvatarPicker({ currentStyle, currentSeed, onSave, onClos
             Save Avatar
           </button>
         </div>
+        </div>{/* end scrollable body */}
       </div>
     </div>
   );

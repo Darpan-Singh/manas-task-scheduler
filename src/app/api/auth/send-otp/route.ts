@@ -60,13 +60,12 @@ export async function POST(req: NextRequest) {
 
   await prisma.otpCode.create({ data: { phone: email, code, expires } });
 
-  let sent = false;
   try {
     await sendEmail(email, code);
-    sent = true;
   } catch (err) {
     console.error("[OTP] Email failed:", err);
+    return NextResponse.json({ error: "Failed to send email. Please try again." }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true, ...(!sent && { devOtp: code }) });
+  return NextResponse.json({ success: true });
 }

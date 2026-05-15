@@ -69,7 +69,6 @@ export default function LoginPage() {
   const [step,    setStep]    = useState<Step>("email");
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
-  const [devOtp,  setDevOtp]  = useState("");
 
   useEffect(() => {
     if (status === "authenticated") router.replace("/profile");
@@ -82,7 +81,6 @@ export default function LoginPage() {
 
   async function handleSendOtp() {
     setError("");
-    setDevOtp("");
     setLoading(true);
     try {
       const res  = await fetch("/api/auth/send-otp", {
@@ -91,8 +89,7 @@ export default function LoginPage() {
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Failed to send OTP"); return; }
-      if (data.devOtp) setDevOtp(data.devOtp);
+      if (!res.ok) { setError(data.error ?? "Failed to send code"); return; }
       setStep("otp");
     } catch {
       setError("Network error. Check your connection.");
@@ -119,7 +116,6 @@ export default function LoginPage() {
     setStep("email");
     setOtp("");
     setError("");
-    setDevOtp("");
   }
 
   return (
@@ -231,13 +227,6 @@ export default function LoginPage() {
                 Code sent to {email} ·{" "}
                 <button onClick={reset} style={{ color: "#A78BFA" }}>Change</button>
               </p>
-
-              {devOtp && (
-                <div className="mb-3 px-3 py-2 rounded-xl text-center text-xs font-mono font-bold"
-                  style={{ background: "rgba(124,58,237,0.15)", color: "#C4B5FD", border: "1px solid rgba(124,58,237,0.3)" }}>
-                  Dev code: {devOtp}
-                </div>
-              )}
 
               <div className="mb-4">
                 <OtpBoxes value={otp} onChange={setOtp} />
