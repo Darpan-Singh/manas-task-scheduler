@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Plus } from "lucide-react";
 import HabitCard, { type HabitData } from "@/components/HabitCard";
 import HabitModal from "@/components/HabitModal";
+import HabitDetailModal from "@/components/HabitDetailModal";
 import BottomNav from "@/components/BottomNav";
 
 type ViewMode = "daily" | "weekly" | "monthly";
@@ -32,6 +33,7 @@ export default function HabitsPage() {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("ALL");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<HabitData | null>(null);
+  const [detailHabit, setDetailHabit] = useState<HabitData | null>(null);
 
   const fetchHabits = async () => {
     const res = await fetch("/api/habits");
@@ -44,7 +46,7 @@ export default function HabitsPage() {
     fetchHabits();
   }, []);
 
-  const handleLog = async (id: string, date: string, done: boolean) => {
+  const handleLog = async (id: string, date: string, done: boolean, value?: number) => {
     if (done) {
       await fetch(`/api/habits/${id}/log`, {
         method: "DELETE",
@@ -55,7 +57,7 @@ export default function HabitsPage() {
       await fetch(`/api/habits/${id}/log`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date }),
+        body: JSON.stringify({ date, ...(value !== undefined ? { value } : {}) }),
       });
     }
     // Optimistic update
@@ -65,10 +67,16 @@ export default function HabitsPage() {
         if (done) {
           return { ...h, logs: h.logs.filter((l) => l.date !== date) };
         } else {
-          return { ...h, logs: [...h.logs, { date }] };
+          return { ...h, logs: [...h.logs, { date, value: value ?? null }] };
         }
       })
     );
+    // Keep detail modal in sync
+    setDetailHabit((prev) => {
+      if (!prev || prev.id !== id) return prev;
+      if (done) return { ...prev, logs: prev.logs.filter((l) => l.date !== date) };
+      return { ...prev, logs: [...prev.logs, { date, value: value ?? null }] };
+    });
   };
 
   const handleSave = async (data: Partial<HabitData>) => {
@@ -190,6 +198,7 @@ export default function HabitsPage() {
                 onLog={handleLog}
                 onEdit={(h) => { setEditing(h); setModalOpen(true); }}
                 onDelete={handleDelete}
+                onOpen={(h) => setDetailHabit(h)}
               />
             ))}
           </div>
@@ -201,6 +210,14 @@ export default function HabitsPage() {
         onClose={() => { setModalOpen(false); setEditing(null); }}
         onSave={handleSave}
         initial={editing}
+      />
+
+      <HabitDetailModal
+        habit={detailHabit}
+        open={!!detailHabit}
+        onClose={() => setDetailHabit(null)}
+        onLog={handleLog}
+        onEdit={(h) => { setDetailHabit(null); setEditing(h); setModalOpen(true); }}
       />
 
       <BottomNav active="habits" dark={false} />

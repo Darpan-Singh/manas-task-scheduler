@@ -12,18 +12,21 @@ export interface HabitData {
   category: string;
   color: string;
   icon: string;
-  logs: { date: string }[];
+  targetValue: number | null;
+  targetUnit: string | null;
+  logs: { date: string; value?: number | null }[];
 }
 
 interface HabitCardProps {
   habit: HabitData;
   viewMode: ViewMode;
-  onLog: (id: string, date: string, done: boolean) => void;
+  onLog: (id: string, date: string, done: boolean, value?: number) => void;
   onEdit: (habit: HabitData) => void;
   onDelete: (id: string) => void;
+  onOpen: (habit: HabitData) => void;
 }
 
-export default function HabitCard({ habit, viewMode, onLog, onEdit, onDelete }: HabitCardProps) {
+export default function HabitCard({ habit, viewMode, onLog, onEdit, onDelete, onOpen }: HabitCardProps) {
   const today = format(new Date(), "yyyy-MM-dd");
   const loggedDates = habit.logs.map((l) => l.date);
   const logSet = new Set(loggedDates);
@@ -53,8 +56,8 @@ export default function HabitCard({ habit, viewMode, onLog, onEdit, onDelete }: 
 
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-      {/* Header row */}
-      <div className="flex items-center gap-3 px-4 pt-4 pb-2">
+      {/* Header row — tap icon/name area to open detail */}
+      <div className="flex items-center gap-3 px-4 pt-4 pb-2" onClick={() => onOpen(habit)} style={{ cursor: "pointer" }}>
         {/* Icon */}
         <div
           className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
@@ -100,7 +103,7 @@ export default function HabitCard({ habit, viewMode, onLog, onEdit, onDelete }: 
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={() => onEdit(habit)}
             className="p-1.5 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"

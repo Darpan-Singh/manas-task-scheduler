@@ -11,7 +11,7 @@ export async function GET() {
     include: {
       logs: {
         where: { date: { gte: since } },
-        select: { date: true },
+        select: { date: true, value: true },
         orderBy: { date: "asc" },
       },
     },
@@ -22,7 +22,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { name, description, category, color, icon } = body;
+  const { name, description, category, color, icon, targetValue, targetUnit } = body;
 
   if (!name?.trim()) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -35,8 +35,10 @@ export async function POST(req: NextRequest) {
       category: (category as HabitCategory) || "FITNESS",
       color: color || "#22c55e",
       icon: icon || "activity",
+      targetValue: targetValue ? parseFloat(targetValue) : null,
+      targetUnit: targetUnit?.trim() || null,
     },
-    include: { logs: true },
+    include: { logs: { select: { date: true, value: true } } },
   });
 
   return NextResponse.json(habit, { status: 201 });

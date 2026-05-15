@@ -108,6 +108,8 @@ model Habit {
   category    HabitCategory @default(FITNESS)
   color       String        @default("#22c55e")
   icon        String        @default("activity")
+  targetValue Float?
+  targetUnit  String?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   logs        HabitLog[]
@@ -120,6 +122,7 @@ model HabitLog {
   habitId  String
   habit    Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
   date     String
+  value    Float?
   loggedAt DateTime @default(now())
 
   @@unique([habitId, date])

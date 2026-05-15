@@ -8,7 +8,7 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const body = await req.json();
-  const { name, description, category, color, icon } = body;
+  const { name, description, category, color, icon, targetValue, targetUnit } = body;
 
   const existing = await prisma.habit.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -21,8 +21,10 @@ export async function PATCH(
       ...(category !== undefined && { category: category as HabitCategory }),
       ...(color !== undefined && { color }),
       ...(icon !== undefined && { icon }),
+      ...(targetValue !== undefined && { targetValue: targetValue ? parseFloat(targetValue) : null }),
+      ...(targetUnit !== undefined && { targetUnit: targetUnit?.trim() || null }),
     },
-    include: { logs: { select: { date: true } } },
+    include: { logs: { select: { date: true, value: true } } },
   });
 
   return NextResponse.json(habit);

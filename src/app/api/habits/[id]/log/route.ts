@@ -9,14 +9,16 @@ export async function POST(
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
   const date = body.date || format(new Date(), "yyyy-MM-dd");
+  const rawValue = body.value !== undefined ? parseFloat(body.value) : null;
+  const value = rawValue !== null && !isNaN(rawValue) ? rawValue : null;
 
   const existing = await prisma.habit.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const log = await prisma.habitLog.upsert({
     where: { habitId_date: { habitId: id, date } },
-    create: { habitId: id, date },
-    update: { loggedAt: new Date() },
+    create: { habitId: id, date, value },
+    update: { loggedAt: new Date(), value },
   });
 
   return NextResponse.json(log, { status: 201 });

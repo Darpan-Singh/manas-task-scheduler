@@ -37,6 +37,8 @@ export default function HabitModal({ open, onClose, onSave, initial }: HabitModa
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("FITNESS");
   const [color, setColor] = useState("#22c55e");
+  const [targetUnit, setTargetUnit] = useState("");
+  const [targetValue, setTargetValue] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -45,11 +47,15 @@ export default function HabitModal({ open, onClose, onSave, initial }: HabitModa
       setDescription(initial.description || "");
       setCategory(initial.category);
       setColor(initial.color);
+      setTargetUnit(initial.targetUnit || "");
+      setTargetValue(initial.targetValue != null ? String(initial.targetValue) : "");
     } else {
       setName("");
       setDescription("");
       setCategory("FITNESS");
       setColor("#22c55e");
+      setTargetUnit("");
+      setTargetValue("");
     }
   }, [initial, open]);
 
@@ -58,7 +64,11 @@ export default function HabitModal({ open, onClose, onSave, initial }: HabitModa
     if (!name.trim()) return;
     setSaving(true);
     try {
-      await onSave({ name, description, category, color });
+      await onSave({
+        name, description, category, color,
+        targetUnit: targetUnit.trim() || null,
+        targetValue: targetValue ? parseFloat(targetValue) : null,
+      } as any);
       onClose();
     } finally {
       setSaving(false);
@@ -99,6 +109,28 @@ export default function HabitModal({ open, onClose, onSave, initial }: HabitModa
               ))}
             </SelectContent>
           </Select>
+
+          {/* Target (optional) */}
+          <div className="space-y-1">
+            <p className="text-xs text-gray-500 px-1">Target (optional)</p>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                placeholder="Unit (steps, min…)"
+                value={targetUnit}
+                onChange={(e) => setTargetUnit(e.target.value)}
+                maxLength={20}
+              />
+              <input
+                type="number"
+                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                placeholder="Goal value"
+                value={targetValue}
+                onChange={(e) => setTargetValue(e.target.value)}
+                min={0}
+              />
+            </div>
+          </div>
 
           {/* Color picker */}
           <div>
