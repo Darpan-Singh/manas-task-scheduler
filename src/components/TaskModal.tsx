@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Task, Category, Priority, CATEGORY_CONFIG } from "@/lib/types";
+import { Task, Category, Priority, CATEGORY_CONFIG, PRIORITY_CONFIG } from "@/lib/types";
 import { format } from "date-fns";
 import { Calendar, Clock } from "lucide-react";
 
@@ -101,42 +101,67 @@ export default function TaskModal({ open, onClose, onSave, initial, defaultCateg
 
           {/* Category + Priority */}
           <div className="grid grid-cols-2 gap-3">
-            <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
-              <SelectTrigger className="rounded-xl">
-                <SelectValue>
-                  {(val: string) => {
-                    const cfg = CATEGORY_CONFIG[val as Category];
-                    return cfg ? (
+            <div className="space-y-1">
+              <label className="flex items-center gap-1 text-xs font-semibold text-gray-500 px-1">
+                Category
+              </label>
+              <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
+                <SelectTrigger className="rounded-xl w-full">
+                  <SelectValue>
+                    {(val: string) => {
+                      const cfg = CATEGORY_CONFIG[val as Category];
+                      return cfg ? (
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.color }} />
+                          <span className="font-semibold">{cfg.name}</span>
+                        </span>
+                      ) : null;
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => (
+                    <SelectItem key={key} value={key}>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.color }} />
+                        <span className="font-semibold">{cfg.name}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="flex items-center gap-1 text-xs font-semibold text-gray-500 px-1">
+                Priority
+              </label>
+              <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
+                <SelectTrigger className="rounded-xl w-full">
+                  <SelectValue>
+                    {(val: string) => {
+                      const cfg = PRIORITY_CONFIG[val as Priority];
+                      return cfg ? (
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.color }} />
+                          <span className="font-semibold">{cfg.label}</span>
+                        </span>
+                      ) : null;
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PRIORITY_CONFIG).map(([key, cfg]) => (
+                    <SelectItem key={key} value={key}>
                       <span className="flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.color }} />
                         <span className="font-semibold">{cfg.label}</span>
                       </span>
-                    ) : null;
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => (
-                  <SelectItem key={key} value={key}>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.color }} />
-                      <span className="font-semibold">{cfg.label}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
-              <SelectTrigger className="rounded-xl">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="HIGH">🔴 High</SelectItem>
-                <SelectItem value="MEDIUM">🟡 Medium</SelectItem>
-                <SelectItem value="LOW">🟢 Low</SelectItem>
-              </SelectContent>
-            </Select>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Deadline — date + time */}
